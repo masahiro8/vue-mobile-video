@@ -1,0 +1,35 @@
+<template>
+  <div id="app">
+    <Video />
+  </div>
+</template>
+
+<script>
+import Video from "./components/video/video";
+
+export default {
+  name: "App",
+  components: {
+    Video,
+  },
+};
+</script>
+
+<style>
+body {
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+#app {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  overflow: auto;
+}
+</style>
