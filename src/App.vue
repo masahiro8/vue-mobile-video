@@ -1,16 +1,16 @@
 <template>
   <div id="app">
-    <Video />
+    <VideoToCanvas />
   </div>
 </template>
 
 <script>
-import Video from "./components/video/video";
+import VideoToCanvas from "./page/VideoToCanvas";
 
 export default {
   name: "App",
   components: {
-    Video,
+    VideoToCanvas,
   },
 };
 </script>
