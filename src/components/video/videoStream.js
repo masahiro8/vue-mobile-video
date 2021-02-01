@@ -64,7 +64,7 @@ export const videoStream = async ({
 
     const left = (size.w - WINDOW_WIDTH) / 2;
     const top = (size.h - WINDOW_HEIGHT) / 2;
-    const option_left = (WINDOW_WIDTH - frame.width) / 2;
+    // const option_left = (WINDOW_WIDTH - frame.width) / 2;
 
     const styles = {
       width: size.w + "px",
