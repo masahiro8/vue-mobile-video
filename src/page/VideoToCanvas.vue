@@ -10,12 +10,13 @@
   </div>
 </template>
 <script>
-import { videoStream } from "../components/video/video.js";
-import { handpose3d } from "../components/handpose/Handpose.js";
+import { videoStream } from "../components/video/videoStream.js";
+import { handpose3d } from "../components/tf/Handpose.js";
 import { handScene } from "../components/threejs/HandScene.js";
 
 export default {
   mounted() {
+    //ここからビデオの映像を取得
     videoStream({
       frameId: "frame",
       videoId: "srcVideo",
@@ -23,17 +24,21 @@ export default {
       detectScale: 1,
       //カメラ起動完了でコール
       readyCallback: (video_info) => {
+        //3Dシーンを初期化
         handScene.init({
           width: video_info.width,
           height: video_info.height,
           shiftleft: video_info.shiftleft,
           videoRef: "srcVideo",
           overflowRef: "overlay",
+          showFingerMesh: true, //指モデルの表示フラグ
         });
+        //ここで手の検出情報を取得
         handpose3d({
           ref: "srcVideo",
           fps: 20,
           callback: (landmarks) => {
+            //検出情報を3Dに渡す
             handScene.setLandmark(landmarks);
           },
         });
@@ -63,9 +68,6 @@ export default {
   position: absolute;
   width: 100%;
   height: 100%;
-  // height: 812px;
-  /* overflow: hidden; */
-  /* visibility: hidden; */
 }
 
 .overLay {
@@ -76,23 +78,18 @@ export default {
   left: 0;
   z-index: 99;
   transform: scale(-1, 1);
-  // height: 812px;
-  /* overflow: hidden; */
-  /* visibility: hidden; */
   canvas {
     position: absolute;
   }
 }
 
 .canvasFrame {
-  //visibility: hidden;
   position: absolute;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
   z-index: 2;
-  // background-color: white;
 }
 
 .video_shadow {
