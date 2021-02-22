@@ -28,7 +28,7 @@ const GESTURE_STATUS = {
 //指の曲がりを判定する境界の角度
 const borderAngle = 170;
 
-export const getGesture = (handmeshes) => {
+export const getGesture = ({ handmeshes, callback }) => {
   //指の角度
   const angles = Object.keys(FINGER_STATUS).map((key) => {
     const indexs = FINGER_STATUS[key].index;
@@ -63,7 +63,7 @@ export const getGesture = (handmeshes) => {
     // return counter_angle === GESTURE_STATUS[key].length;
   });
 
-  // console.log(result);
+  callback(result);
 };
 
 /**
@@ -74,6 +74,7 @@ export const getGesture = (handmeshes) => {
  * @param {*} fingerIndex
  */
 export const getFingerStatusByAngle = (handmeshes, fingerIndex) => {
+  if (!handmeshes) return null;
   const n1 = handmeshes[fingerIndex[0]].position.clone();
   const n2 = handmeshes[fingerIndex[1]].position.clone();
   const n3 = handmeshes[fingerIndex[2]].position.clone();
@@ -91,6 +92,7 @@ export const getFingerStatusByAngle = (handmeshes, fingerIndex) => {
  * @param {*} fingerIndex
  */
 export const getFingerStatusByPosition = (handmeshes, fingerIndex) => {
+  if (!handmeshes) return null;
   const n1 = handmeshes[fingerIndex[0]].position.clone();
   const n3 = handmeshes[fingerIndex[2]].position.clone();
   const position = n1.y < n3.y;

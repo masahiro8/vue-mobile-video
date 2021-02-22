@@ -7,7 +7,6 @@ import { fpsWorker } from "../../util/fps";
  */
 export const handpose3d = async ({ ref, fps, callback }) => {
   let model = await handpose.load();
-  let landmarks = [];
   const srcTarget = document.getElementById(ref);
 
   //fpsを設定して取得
@@ -15,8 +14,7 @@ export const handpose3d = async ({ ref, fps, callback }) => {
     if (model && ref) {
       const predictions = await model.estimateHands(srcTarget);
       if (predictions.length > 0) {
-        landmarks = predictions[0].landmarks;
-        callback(landmarks);
+        callback(predictions);
       }
     }
   }, fps);

@@ -14,7 +14,35 @@ import { videoStream } from "../components/video/videoStream.js";
 import { handpose3d } from "../components/tf/Handpose.js";
 import { handScene } from "../components/threejs/HandScene.js";
 
+const delayTimer = () => {
+  let timer = null;
+
+  const clearTimer = () => {
+    clearTimeout(timer);
+  };
+
+  const setTimer = (time, callback) => {
+    clearTimer();
+    timer = setTimeout(() => {
+      callback();
+    }, time);
+  };
+
+  return {
+    setTimer,
+    clearTimer,
+  };
+};
+
 export default {
+  data: () => {
+    return {
+      switch: false,
+      timer: delayTimer(),
+      Images: [], //画像を設定
+      ImageIndex: 0, //表示する画像のindex
+    };
+  },
   mounted() {
     //ここからビデオの映像を取得
     videoStream({
@@ -23,27 +51,114 @@ export default {
       canvasId: "video_shadow",
       detectScale: 1,
       //カメラ起動完了でコール
-      readyCallback: (video_info) => {
+      readyCallback: async (video_info) => {
         //3Dシーンを初期化
-        handScene.init({
+        await handScene.init({
           width: video_info.width,
           height: video_info.height,
           shiftleft: video_info.shiftleft,
           videoRef: "srcVideo",
           overflowRef: "overlay",
-          showFingerMesh: true, //指モデルの表示フラグ
+          showFingerMesh: false, //指モデルの表示フラグ
+          handNumber: 2, //現在は手は１つしか検出できない mediapopeの仕様
         });
+        console.log("init");
+
+        //モデルをロード
+        // const miton = await handScene.addModel({
+        //   path: "https://storage.googleapis.com/ar-3d/gltf/miton_center.glb",
+        // });
+
+        const vrmonkey = await handScene.addPlane({
+          path: "./images/vrmonkey_512_512.jpg",
+        });
+
+        const mlogo = await handScene.addPlane({
+          path: "./images/LOGO_512.jpg",
+        });
+
+        //画像モデルを配列に登録
+        this.Images = [vrmonkey, mlogo];
+
         //ここで手の検出情報を取得
         handpose3d({
           ref: "srcVideo",
           fps: 20,
           callback: (landmarks) => {
-            //検出情報を3Dに渡す
-            handScene.setLandmark(landmarks);
+            //手のモデル表示
+            //配列で渡してるが実際にはmediapipeは１つだけしか返していない
+            for (let i = 0; i < landmarks.length; i++) {
+              //検出情報を3Dに渡す
+              handScene.drawHand({
+                index: i,
+                landmarks: landmarks[i].landmarks,
+                callback: (result) => {
+                  if (this.switch !== result) {
+                    // console.log("changed:", result);
+                    //result => true 閉じてる
+                    this.switch = result;
+                    if (result) {
+                      //1秒以上閉じるとコールバック
+                      this.timer.setTimer(300, () => {
+                        //トリガー
+                        //ImageIndexを更新
+                        if (this.ImageIndex === this.Images.length - 1) {
+                          this.ImageIndex = 0;
+                        } else {
+                          this.ImageIndex++;
+                        }
+                        // console.log("trigger", this.ImageIndex);
+                      });
+                    } else {
+                      this.timer.clearTimer();
+                    }
+                  }
+                },
+              });
+            }
+
+            //オブジェクトを表示
+            // handScene.drawModel({
+            //   model: mlogo,
+            //   scale_rate: 0.15,
+            //   landmarks: landmarks[0].landmarks,
+            // });
+
+            this.hideModels();
+
+            this.showModel(landmarks);
           },
         });
       },
     });
+  },
+  methods: {
+    showModel(landmarks) {
+      if (this.switch) {
+        this.hideAll();
+        return;
+      }
+
+      //オブジェクトを表示
+      handScene.drawModel({
+        model: this.Images[this.ImageIndex],
+        scale_rate: 0.15,
+        landmarks: landmarks[0].landmarks,
+      });
+    },
+    hideModels() {
+      //非表示オブジェクト
+      for (let i = 0; i < this.Images.length; i++) {
+        if (i !== this.ImageIndex) {
+          handScene.hideModel({ model: this.Images[i] });
+        }
+      }
+    },
+    hideAll() {
+      for (let i = 0; i < this.Images.length; i++) {
+        handScene.hideModel({ model: this.Images[i] });
+      }
+    },
   },
 };
 </script>
