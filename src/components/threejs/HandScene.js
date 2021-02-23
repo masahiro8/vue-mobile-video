@@ -201,7 +201,12 @@ const _handScene = () => {
     handMeshes.push(meshes_clone);
   };
 
-  const drawHand = ({ index, landmarks, callback }) => {
+  const drawHand = ({
+    index,
+    landmarks,
+    fingerDistanceCallback,
+    gestureStatusCallback
+  }) => {
     //画面サイズの中央位置を(0,0,0)として補正
     //メッシュを描画
     const drawMesh = (i) => {
@@ -239,11 +244,21 @@ const _handScene = () => {
       }
     }
 
-    //人差し指の状態
-    // getGesture({ handmeshes: handMeshes[0], callback });
+    //じゃんけん
+    if (gestureStatusCallback) {
+      getGesture({
+        handmeshes: handMeshes[0],
+        callback: gestureStatusCallback
+      });
+    }
 
-    //指の距離
-    getDistance({ handmeshes: handMeshes[0], callback });
+    //人差し指と親指の状態
+    if (fingerDistanceCallback) {
+      getDistance({
+        handmeshes: handMeshes[0],
+        callback: fingerDistanceCallback
+      });
+    }
   };
 
   /*

@@ -43,6 +43,11 @@ export default {
       ImageIndex: 0, //表示する画像のindex
     };
   },
+  props: {
+    data: {
+      type: Array,
+    },
+  },
   mounted() {
     //ここからビデオの映像を取得
     videoStream({
@@ -69,16 +74,25 @@ export default {
         //   path: "https://storage.googleapis.com/ar-3d/gltf/miton_center.glb",
         // });
 
-        const vrmonkey = await handScene.addPlane({
-          path: "./images/vrmonkey_512_512.jpg",
-        });
-
-        const mlogo = await handScene.addPlane({
-          path: "./images/LOGO_512.jpg",
-        });
+        //モデル作成
+        const loadMmodel = (path) => {
+          return new Promise((resolve) => {
+            const model = handScene.addPlane({
+              path: path,
+            });
+            resolve(model);
+          });
+        };
 
         //画像モデルを配列に登録
-        this.Images = [vrmonkey, mlogo];
+        this.Images = await Promise.all(
+          this.data.map(async (item) => {
+            const model = await loadMmodel(item.path);
+            return model;
+          })
+        );
+
+        console.log("models loaded");
 
         //ここで手の検出情報を取得
         handpose3d({
@@ -92,27 +106,11 @@ export default {
               handScene.drawHand({
                 index: i,
                 landmarks: landmarks[i].landmarks,
-                callback: (result) => {
-                  if (this.switch !== result) {
-                    // console.log("changed:", result);
-                    //result => true 閉じてる
-                    this.switch = result;
-                    if (result) {
-                      //1秒以上閉じるとコールバック
-                      this.timer.setTimer(300, () => {
-                        //トリガー
-                        //ImageIndexを更新
-                        if (this.ImageIndex === this.Images.length - 1) {
-                          this.ImageIndex = 0;
-                        } else {
-                          this.ImageIndex++;
-                        }
-                        // console.log("trigger", this.ImageIndex);
-                      });
-                    } else {
-                      this.timer.clearTimer();
-                    }
-                  }
+                fingerDistanceCallback: (result) => {
+                  this.updateSwitch(result);
+                },
+                gestureStatusCallback: (result) => {
+                  this.updateGesture(result);
                 },
               });
             }
@@ -125,7 +123,6 @@ export default {
             // });
 
             this.hideModels();
-
             this.showModel(landmarks);
           },
         });
@@ -133,6 +130,30 @@ export default {
     });
   },
   methods: {
+    updateGesture(result) {
+      console.log("gesture", result);
+    },
+    //指を描画後に人差し指と親指の距離を取得
+    updateSwitch(result) {
+      if (this.switch !== result) {
+        //result => true 閉じてる、false 開いてる
+        this.switch = result;
+        if (result) {
+          //300ms以上閉じるとコールバック
+          this.timer.setTimer(300, () => {
+            //トリガー
+            //ImageIndexを更新
+            if (this.ImageIndex === this.Images.length - 1) {
+              this.ImageIndex = 0;
+            } else {
+              this.ImageIndex++;
+            }
+          });
+        } else {
+          this.timer.clearTimer();
+        }
+      }
+    },
     showModel(landmarks) {
       if (this.switch) {
         this.hideAll();

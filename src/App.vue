@@ -1,16 +1,29 @@
 <template>
   <div id="app">
-    <VideoToCanvas />
+    <VideoToCanvas :data="data" />
   </div>
 </template>
 
 <script>
 import VideoToCanvas from "./page/VideoToCanvas";
 
+const DATA = [
+  { path: "./images/vrmonkey_512_512.jpg", text: "" },
+  {
+    path: "./images/LOGO_512.jpg",
+    text: "韓国コスメのバーチャルメイクサービス MAHOU MAKE",
+  },
+];
+
 export default {
   name: "App",
   components: {
     VideoToCanvas,
+  },
+  data: () => {
+    return {
+      data: DATA,
+    };
   },
 };
 </script>
