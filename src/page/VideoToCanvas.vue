@@ -74,24 +74,8 @@ export default {
         //   path: "https://storage.googleapis.com/ar-3d/gltf/miton_center.glb",
         // });
 
-        //モデル作成
-        const loadMmodel = (path) => {
-          return new Promise((resolve) => {
-            const model = handScene.addPlane({
-              path: path,
-            });
-            resolve(model);
-          });
-        };
-
-        //画像モデルを配列に登録
-        this.Images = await Promise.all(
-          this.data.map(async (item) => {
-            const model = await loadMmodel(item.path);
-            return model;
-          })
-        );
-
+        //モデルをロード
+        this.loadModels();
         console.log("models loaded");
 
         //ここで手の検出情報を取得
@@ -130,6 +114,25 @@ export default {
     });
   },
   methods: {
+    //モデルをロード
+    async loadModels() {
+      const loadMmodel = (path) => {
+        return new Promise((resolve) => {
+          const model = handScene.addPlane({
+            path: path,
+          });
+          resolve(model);
+        });
+      };
+
+      //画像モデルを配列に登録
+      this.Images = await Promise.all(
+        this.data.map(async (item) => {
+          const model = await loadMmodel(item.path);
+          return model;
+        })
+      );
+    },
     updateGesture(result) {
       console.log("gesture", result);
     },
