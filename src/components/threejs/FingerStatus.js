@@ -26,14 +26,14 @@ const GESTURE_STATUS = {
 };
 
 //指の曲がりを判定する境界の角度
-const borderAngle = 170;
+// const borderAngle = 170;
 
 export const getGesture = ({ handmeshes, callback }) => {
   //指の角度
-  const angles = Object.keys(FINGER_STATUS).map((key) => {
-    const indexs = FINGER_STATUS[key].index;
-    return getFingerStatusByAngle(handmeshes, indexs);
-  });
+  // const angles = Object.keys(FINGER_STATUS).map((key) => {
+  //   const indexs = FINGER_STATUS[key].index;
+  //   return getFingerStatusByAngle(handmeshes, indexs);
+  // });
 
   //指の位置
   const position = Object.keys(FINGER_STATUS).map((key) => {
