@@ -43,15 +43,15 @@ export const getGesture = ({ handmeshes, callback }) => {
 
   //判定
   const result = Object.keys(GESTURE_STATUS).filter((key) => {
-    let counter_angle = 0;
+    // let counter_angle = 0;
     let counter_position = 0;
 
     const status = GESTURE_STATUS[key];
-    for (let i = 0; i < angles.length; i++) {
-      if (status[i] === angles[i] > borderAngle) {
-        counter_angle++;
-      }
-    }
+    // for (let i = 0; i < angles.length; i++) {
+    //   if (status[i] === angles[i] > borderAngle) {
+    //     counter_angle++;
+    //   }
+    // }
 
     for (let i = 0; i < position.length; i++) {
       if (status[i] === position[i]) {

@@ -215,8 +215,8 @@ const _handScene = () => {
       const p0 = webcam2space(...landmarks[i]); //現在の座標
       const p1 = webcam2space(...landmarks[next]); //次のパーツの座標
 
-      //　p0をp1の方向に0.5(中間地点)の距離
-      // const mid = p0.clone().lerp(p1, 0.5);
+      //p0をp1の方向に0.5(中間地点)の距離
+      //const mid = p0.clone().lerp(p1, 0.5);
 
       //モデル描画用
       if (fingerPoints.flat().indexOf(i) !== -1) {

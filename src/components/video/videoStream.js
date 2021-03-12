@@ -37,7 +37,7 @@ export const videoStream = async ({
         .then((stream) => {
           video.muted = true;
           video.playsinline = true;
-          video.onloadedmetadata = (e) => {
+          video.onloadedmetadata = () => {
             resolved(true);
           };
           video.srcObject = stream;
