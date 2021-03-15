@@ -13,6 +13,7 @@
 import { videoStream } from "../components/video/videoStream.js";
 import { handpose3d } from "../components/tf/Handpose.js";
 import { handScene } from "../components/threejs/HandScene.js";
+import { randomText } from "../components/text/randomText.js";
 
 const delayTimer = () => {
   let timer = null;
@@ -136,6 +137,17 @@ export default {
     updateGesture(result) {
       console.log("gesture", result);
     },
+    //テキストアニメーション
+    setText() {
+      const texts = [...this.data[this.ImageIndex].text];
+      let _texts = new Array(texts.length);
+      for (let i = 0; i < texts.length; i++) {
+        randomText(texts[i], 50, 20, (t) => {
+          _texts[i] = t;
+          this.$emit("set-text", _texts);
+        });
+      }
+    },
     //指を描画後に人差し指と親指の距離を取得
     updateSwitch(result) {
       if (this.switch !== result) {
@@ -151,6 +163,9 @@ export default {
             } else {
               this.ImageIndex++;
             }
+
+            console.log("--", this.ImageIndex);
+            this.setText();
           });
         } else {
           this.timer.clearTimer();

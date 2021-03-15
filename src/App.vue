@@ -1,17 +1,21 @@
 <template>
   <div id="app">
-    <VideoToCanvas :data="data" />
+    <VideoToCanvas :data="data" @set-text="setText" />
+    <div class="overlayText">
+      <p v-for="(text, index) in texts" :key="index" class="text">{{ text }}</p>
+    </div>
   </div>
 </template>
 
 <script>
 import VideoToCanvas from "./page/VideoToCanvas";
+import { randomText } from "./components/text/randomText.js";
 
 const DATA = [
-  { path: "./images/vrmonkey_512_512.jpg", text: "" },
+  { path: "./images/vrmonkey_512_512.jpg", text: ["© Backham Co., Ltd."] },
   {
     path: "./images/LOGO_512.jpg",
-    text: "韓国コスメのバーチャルメイクサービス MAHOU MAKE",
+    text: ["韓国コスメの", "バーチャルメイクサービス", "MAHOU MAKE"],
   },
 ];
 
@@ -23,12 +27,37 @@ export default {
   data: () => {
     return {
       data: DATA,
+      isLoading: true,
+      texts: ["LOADING...", "© Backham Co., Ltd."],
     };
+  },
+  mounted() {
+    this.loading();
+  },
+  methods: {
+    async loading() {
+      let _texts = new Array(this.texts.length);
+      for (let i = 0; i < this.texts.length; i++) {
+        randomText(this.texts[i], 50, 20, (t) => {
+          _texts[i] = t;
+          this.texts = [..._texts];
+        });
+      }
+      const timer = setTimeout(() => {
+        if (this.isLoading) {
+          this.loading();
+        }
+      }, 2000);
+    },
+    setText(texts) {
+      this.isLoading = false;
+      this.texts = [...texts];
+    },
   },
 };
 </script>
 
-<style>
+<style lang="scss">
 body {
   padding: 0;
   margin: 0;
@@ -44,5 +73,19 @@ body {
   bottom: 0;
   right: 0;
   overflow: auto;
+}
+
+.overlayText {
+  position: fixed;
+  width: 100%;
+  z-index: 999;
+  padding: 16px;
+
+  .text {
+    display: block;
+    font-size: 14px;
+    text-align: left;
+    margin: 0;
+  }
 }
 </style>
