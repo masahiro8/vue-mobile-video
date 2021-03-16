@@ -1,7 +1,8 @@
 import * as THREE from "three";
-import { getGesture } from "./FingerStatus";
+import { getGesture, getEdges } from "./FingerStatus";
 import { ModelLoader } from "./ModelLoader";
 import { PlaneLoader } from "./PlaneLoader";
+import { CommetLoader } from "./CommetLoader";
 import { theta } from "../../util/vector";
 import { getDistance } from "./FingerSwitch";
 /**
@@ -19,6 +20,7 @@ const _handScene = () => {
   let video;
   let models = [];
   let isFingerMesh; //指のモデルの表示フラグ
+  let _circles = [];
 
   //指先
   const edges = {
@@ -105,6 +107,48 @@ const _handScene = () => {
     });
   };
 
+  const addCommet = ({ path }) => {
+    return new Promise((resolved) => {
+      const index = models.length;
+      models.push({
+        id: index,
+        obj: new THREE.Object3D()
+      });
+
+      CommetLoader(path, (obj, circles) => {
+        _circles = circles;
+        obj.rotation.x = Math.PI / 2;
+        models[index].obj.add(obj);
+        models[index].obj.visible = true;
+        scene.add(models[index].obj);
+        resolved(models[index], _circles);
+      });
+    });
+  };
+
+  const drawCommet = ({ model, scale_rate, landmarks }) => {
+    for (let i = 0; i < _circles.length; i++) {
+      _circles[i].mesh.material.opacity -= _circles[i].lifeCount;
+
+      if (_circles[i].mesh.material.opacity <= 0) {
+        _circles[i].mesh.position.x = -0.5 + Math.random() * 1;
+        _circles[i].mesh.position.y = -0.5 + Math.random() * 1;
+        _circles[i].mesh.material.opacity = 1.0;
+      }
+      _circles[i].mesh.position.x +=
+        _circles[i].xMoveSpeed * (_circles[i].xDirections ? 1 : -1);
+      _circles[i].mesh.position.y +=
+        _circles[i].yMoveSpeed * (_circles[i].yDirections ? 1 : -1);
+    }
+
+    //中心に表示
+    model.obj.position.set(landmarks.x, landmarks.y, landmarks.z);
+    model.obj.scale.set(scale_rate, scale_rate, scale_rate);
+    model.obj.visible = true;
+    model.obj.rotation.x = Math.PI / -2; //blenderのz方向とthreejsのz方向が違うので補正
+    // model.obj.lookAt(p1);
+  };
+
   //モデルを追加
   const addModel = ({ path }) => {
     return new Promise((resolved) => {
@@ -143,7 +187,6 @@ const _handScene = () => {
       const rad = theta(camera, point);
       return rad;
     };
-
     const p0 = webcam2space(...landmarks[4]);
     const p1 = webcam2space(...landmarks[8]);
     //２点間の距離からスケールを算出
@@ -205,7 +248,8 @@ const _handScene = () => {
     index,
     landmarks,
     fingerDistanceCallback,
-    gestureStatusCallback
+    gestureStatusCallback,
+    fingerEdgesCallback
   }) => {
     //画面サイズの中央位置を(0,0,0)として補正
     //メッシュを描画
@@ -215,8 +259,8 @@ const _handScene = () => {
       const p0 = webcam2space(...landmarks[i]); //現在の座標
       const p1 = webcam2space(...landmarks[next]); //次のパーツの座標
 
-      //p0をp1の方向に0.5(中間地点)の距離
-      //const mid = p0.clone().lerp(p1, 0.5);
+      // p0をp1の方向に0.5(中間地点)の距離
+      // const mid = p0.clone().lerp(p1, 0.5);
 
       //モデル描画用
       if (fingerPoints.flat().indexOf(i) !== -1) {
@@ -259,6 +303,13 @@ const _handScene = () => {
         callback: fingerDistanceCallback
       });
     }
+
+    if (fingerEdgesCallback) {
+      getEdges({
+        handmeshes: handMeshes[0],
+        callback: fingerEdgesCallback
+      });
+    }
   };
 
   /*
@@ -277,6 +328,8 @@ const _handScene = () => {
     drawHand,
     addModel,
     addPlane,
+    addCommet,
+    drawCommet,
     drawModel,
     hideModel
   };
