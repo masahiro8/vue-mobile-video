@@ -13,7 +13,7 @@ export const FINGER_STATUS = {
   INDEX_FINGER: { key: "indexFinger", index: [6, 7, 8] },
   MIDDLE_FINGER: { key: "middleFinger", index: [10, 11, 12] },
   RING_FINGER: { key: "ringFinger", index: [14, 15, 16] },
-  PINKY: { key: "pinky", index: [18, 19, 20] }
+  PINKY: { key: "pinky", index: [18, 19, 20] },
 };
 
 export const FINGER_EDGES = {
@@ -21,7 +21,7 @@ export const FINGER_EDGES = {
   INDEX_FINGER: { key: "indexFinger", index: [8] },
   MIDDLE_FINGER: { key: "middleFinger", index: [12] },
   RING_FINGER: { key: "ringFinger", index: [16] },
-  PINKY: { key: "pinky", index: [20] }
+  PINKY: { key: "pinky", index: [20] },
 };
 
 /**
@@ -30,18 +30,18 @@ export const FINGER_EDGES = {
 const GESTURE_STATUS = {
   PAA: [true, true, true, true],
   GUU: [false, false, false, false],
-  CHOKI: [true, true, false, false]
+  CHOKI: [true, true, false, false],
 };
 
 //指の曲がりを判定する境界の角度
-// const borderAngle = 170;
+const borderAngle = 170;
 
 export const getGesture = ({ handmeshes, callback }) => {
   //指の角度
-  // const angles = Object.keys(FINGER_STATUS).map((key) => {
-  //   const indexs = FINGER_STATUS[key].index;
-  //   return getFingerStatusByAngle(handmeshes, indexs);
-  // });
+  const angles = Object.keys(FINGER_STATUS).map((key) => {
+    const indexs = FINGER_STATUS[key].index;
+    return getFingerStatusByAngle(handmeshes, indexs);
+  });
 
   //指の位置
   const position = Object.keys(FINGER_STATUS).map((key) => {
