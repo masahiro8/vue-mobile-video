@@ -13,7 +13,15 @@ export const FINGER_STATUS = {
   INDEX_FINGER: { key: "indexFinger", index: [6, 7, 8] },
   MIDDLE_FINGER: { key: "middleFinger", index: [10, 11, 12] },
   RING_FINGER: { key: "ringFinger", index: [14, 15, 16] },
-  PINKY: { key: "pinky", index: [18, 19, 20] }
+  PINKY: { key: "pinky", index: [18, 19, 20] },
+};
+
+export const FINGER_EDGES = {
+  THUMB: { key: "thumb", index: [4] },
+  INDEX_FINGER: { key: "indexFinger", index: [8] },
+  MIDDLE_FINGER: { key: "middleFinger", index: [12] },
+  RING_FINGER: { key: "ringFinger", index: [16] },
+  PINKY: { key: "pinky", index: [20] },
 };
 
 /**
@@ -22,7 +30,7 @@ export const FINGER_STATUS = {
 const GESTURE_STATUS = {
   PAA: [true, true, true, true],
   GUU: [false, false, false, false],
-  CHOKI: [true, true, false, false]
+  CHOKI: [true, true, false, false],
 };
 
 //指の曲がりを判定する境界の角度
@@ -43,13 +51,14 @@ export const getGesture = ({ handmeshes, callback }) => {
 
   //判定
   const result = Object.keys(GESTURE_STATUS).filter((key) => {
-    let counter_angle = 0;
+    // let counter_angle = 0;
     let counter_position = 0;
 
     const status = GESTURE_STATUS[key];
+
     for (let i = 0; i < angles.length; i++) {
       if (status[i] === angles[i] > borderAngle) {
-        counter_angle++;
+        // counter_angle++;
       }
     }
 
@@ -98,4 +107,10 @@ export const getFingerStatusByPosition = (handmeshes, fingerIndex) => {
   const position = n1.y < n3.y;
   // console.log("position ", position);
   return position;
+};
+
+export const getEdges = ({ handmeshes, callback }) => {
+  const thumb = handmeshes[4].position.clone();
+  const index = handmeshes[8].position.clone();
+  callback(thumb, index);
 };

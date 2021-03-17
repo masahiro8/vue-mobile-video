@@ -46,6 +46,8 @@ export default {
       const timer = setTimeout(() => {
         if (this.isLoading) {
           this.loading();
+        }else {
+          clearTimeout(timer);
         }
       }, 2000);
     },

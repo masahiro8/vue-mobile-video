@@ -31,7 +31,7 @@ const delayTimer = () => {
 
   return {
     setTimer,
-    clearTimer,
+    clearTimer
   };
 };
 
@@ -42,12 +42,13 @@ export default {
       timer: delayTimer(),
       Images: [], //画像を設定
       ImageIndex: 0, //表示する画像のindex
+      commet: null
     };
   },
   props: {
     data: {
-      type: Array,
-    },
+      type: Array
+    }
   },
   mounted() {
     //ここからビデオの映像を取得
@@ -66,7 +67,7 @@ export default {
           videoRef: "srcVideo",
           overflowRef: "overlay",
           showFingerMesh: false, //指モデルの表示フラグ
-          handNumber: 2, //現在は手は１つしか検出できない mediapopeの仕様
+          handNumber: 2 //現在は手は１つしか検出できない mediapopeの仕様
         });
         console.log("init");
 
@@ -78,6 +79,17 @@ export default {
         //モデルをロード
         this.loadModels();
         console.log("models loaded");
+
+        const loadCommet = (path) => {
+          return new Promise((resolve) => {
+            const model = handScene.addCommet({
+              path: path
+            });
+            resolve(model);
+          });
+        };
+
+        this.commet = await loadCommet("/images/circle.png");
 
         //ここで手の検出情報を取得
         handpose3d({
@@ -97,6 +109,9 @@ export default {
                 gestureStatusCallback: (result) => {
                   this.updateGesture(result);
                 },
+                fingerEdgesCallback: (thumb, index) => {
+                  this.updateEdges(thumb, index);
+                }
               });
             }
 
@@ -109,9 +124,9 @@ export default {
 
             this.hideModels();
             this.showModel(landmarks);
-          },
+          }
         });
-      },
+      }
     });
   },
   methods: {
@@ -172,6 +187,15 @@ export default {
         }
       }
     },
+    updateEdges(thumb, index) {
+      console.log("thumb", thumb);
+
+      handScene.drawCommet({
+        model: this.commet,
+        scale_rate: 5.0,
+        landmarks: index
+      });
+    },
     showModel(landmarks) {
       if (this.switch) {
         this.hideAll();
@@ -182,7 +206,7 @@ export default {
       handScene.drawModel({
         model: this.Images[this.ImageIndex],
         scale_rate: 0.15,
-        landmarks: landmarks[0].landmarks,
+        landmarks: landmarks[0].landmarks
       });
     },
     hideModels() {
@@ -197,8 +221,8 @@ export default {
       for (let i = 0; i < this.Images.length; i++) {
         handScene.hideModel({ model: this.Images[i] });
       }
-    },
-  },
+    }
+  }
 };
 </script>
 <style lang="scss" scoped>
