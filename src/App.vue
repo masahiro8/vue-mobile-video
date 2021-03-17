@@ -10,7 +10,6 @@
 <script>
 import Worker from "worker-loader!./worker.js";
 import VideoToCanvas from "./page/VideoToCanvas";
-import { randomText } from "./components/text/randomText.js";
 
 const DATA = [
   { path: "./images/vrmonkey_512_512.jpg", text: ["© Backham Co., Ltd."] },
