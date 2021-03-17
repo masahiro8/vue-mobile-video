@@ -13,6 +13,7 @@
 import { videoStream } from "../components/video/videoStream.js";
 import { handpose3d } from "../components/tf/Handpose.js";
 import { handScene } from "../components/threejs/HandScene.js";
+import { randomText } from "../components/text/randomText.js";
 
 const delayTimer = () => {
   let timer = null;
@@ -75,24 +76,8 @@ export default {
         //   path: "https://storage.googleapis.com/ar-3d/gltf/miton_center.glb",
         // });
 
-        //モデル作成
-        const loadMmodel = (path) => {
-          return new Promise((resolve) => {
-            const model = handScene.addPlane({
-              path: path
-            });
-            resolve(model);
-          });
-        };
-
-        //画像モデルを配列に登録
-        this.Images = await Promise.all(
-          this.data.map(async (item) => {
-            const model = await loadMmodel(item.path);
-            return model;
-          })
-        );
-
+        //モデルをロード
+        this.loadModels();
         console.log("models loaded");
 
         const loadCommet = (path) => {
@@ -145,8 +130,38 @@ export default {
     });
   },
   methods: {
+    //モデルをロード
+    async loadModels() {
+      const loadMmodel = (path) => {
+        return new Promise((resolve) => {
+          const model = handScene.addPlane({
+            path: path,
+          });
+          resolve(model);
+        });
+      };
+
+      //画像モデルを配列に登録
+      this.Images = await Promise.all(
+        this.data.map(async (item) => {
+          const model = await loadMmodel(item.path);
+          return model;
+        })
+      );
+    },
     updateGesture(result) {
       console.log("gesture", result);
+    },
+    //テキストアニメーション
+    setText() {
+      const texts = [...this.data[this.ImageIndex].text];
+      let _texts = new Array(texts.length);
+      for (let i = 0; i < texts.length; i++) {
+        randomText(texts[i], 50, 20, (t) => {
+          _texts[i] = t;
+          this.$emit("set-text", _texts);
+        });
+      }
     },
     //指を描画後に人差し指と親指の距離を取得
     updateSwitch(result) {
@@ -163,6 +178,9 @@ export default {
             } else {
               this.ImageIndex++;
             }
+
+            console.log("--", this.ImageIndex);
+            this.setText();
           });
         } else {
           this.timer.clearTimer();

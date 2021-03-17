@@ -1,4 +1,4 @@
-const randomText = (str = "--", time, interval, callback) => {
+export const randomText = (str = "--", time, interval, callback) => {
   let counter = str.length;
   let text = [];
 
@@ -59,14 +59,3 @@ const randomText = (str = "--", time, interval, callback) => {
   };
   timer1();
 };
-
-self.addEventListener(
-  "message",
-  function(e) {
-    const { text, time, interval } = e.data;
-    randomText(text, time, interval, (t) => {
-      self.postMessage(t);
-    });
-  },
-  false
-);
