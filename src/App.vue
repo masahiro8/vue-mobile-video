@@ -5,6 +5,7 @@
 </template>
 
 <script>
+import Worker from "worker-loader!./worker.js";
 import VideoToCanvas from "./page/VideoToCanvas";
 
 const DATA = [
@@ -25,6 +26,11 @@ export default {
       data: DATA,
     };
   },
+  mounted(){
+    const w = new Worker();
+    w.postMessage({ test: "Send from main thread" });
+    w.addEventListener("message", (e) => console.log(e.data));
+  }
 };
 </script>
 
