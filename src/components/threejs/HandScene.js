@@ -3,6 +3,7 @@ import { getGesture, getEdges } from "./FingerStatus";
 import { ModelLoader } from "./ModelLoader";
 import { PlaneLoader } from "./PlaneLoader";
 import { CommetLoader } from "./CommetLoader";
+import { RingLoader } from "./RingLoader";
 import { theta } from "../../util/vector";
 import { getDistance } from "./FingerSwitch";
 /**
@@ -147,6 +148,40 @@ const _handScene = () => {
     model.obj.visible = true;
     model.obj.rotation.x = Math.PI / -2; //blenderのz方向とthreejsのz方向が違うので補正
     // model.obj.lookAt(p1);
+  };
+
+  const addRing = ({ path }) => {
+    return new Promise((resolved) => {
+      const index = models.length;
+      models.push({ id: index, obj: new THREE.Object3D() });
+
+      RingLoader(path, (obj) => {
+        obj.rotation.x = Math.PI / 2;
+        models[index].obj.add(obj);
+        models[index].obj.visible = true;
+        scene.add(models[index].obj);
+        resolved(models[index]);
+      });
+    });
+  };
+
+  const drawRing = ({ model, scale_rate, landmarks, angle }) => {
+    const p0 = webcam2space(...landmarks[4]);
+    const p1 = webcam2space(...landmarks[8]);
+    //２点間の距離からスケールを算出
+    const scale = p0.distanceTo(p1) * scale_rate;
+    const _center = p0.add(p1);
+
+    //中心に表示
+    model.obj.position.set(_center.x * 0.5, _center.y * 0.5, _center.z * 0.5);
+    model.obj.scale.set(scale * angle, scale * angle, scale * angle);
+    model.obj.visible = true;
+    model.obj.rotation.x = Math.PI / -2; //blenderのz方向とthreejsのz方向が違うので補正
+    model.obj.rotation.y = -(angle * Math.PI * Math.floor(scale)) / 180;
+  };
+
+  const hideRing = ({ model }) => {
+    model.obj.visible = false;
   };
 
   //モデルを追加
@@ -329,8 +364,11 @@ const _handScene = () => {
     addModel,
     addPlane,
     addCommet,
+    addRing,
     drawCommet,
+    drawRing,
     drawModel,
+    hideRing,
     hideModel
   };
 };

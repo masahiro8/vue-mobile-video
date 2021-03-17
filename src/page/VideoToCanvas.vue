@@ -42,7 +42,9 @@ export default {
       timer: delayTimer(),
       Images: [], //画像を設定
       ImageIndex: 0, //表示する画像のindex
-      commet: null
+      commet: null,
+      ring: null,
+      ringAngle: 0 //リングの回転角
     };
   },
   props: {
@@ -91,6 +93,18 @@ export default {
 
         this.commet = await loadCommet("/images/circle.png");
 
+        //リング状のエフェクトをロード
+        const loadRing = (path) => {
+          return new Promise((resolve) => {
+            const model = handScene.addRing({
+              path: path
+            });
+            resolve(model);
+          });
+        };
+
+        this.ring = await loadRing("/images/ring-flare.png");
+
         //ここで手の検出情報を取得
         handpose3d({
           ref: "srcVideo",
@@ -121,9 +135,13 @@ export default {
             //   scale_rate: 0.15,
             //   landmarks: landmarks[0].landmarks,
             // });
-
             this.hideModels();
             this.showModel(landmarks);
+
+            this.ringAngle = this.ringAngle + 1;
+            console.log("ringAngle", this.ringAngle);
+            // this.hideRing();
+            this.showRing(landmarks, this.ringAngle);
           }
         });
       }
@@ -135,7 +153,7 @@ export default {
       const loadMmodel = (path) => {
         return new Promise((resolve) => {
           const model = handScene.addPlane({
-            path: path,
+            path: path
           });
           resolve(model);
         });
@@ -209,6 +227,18 @@ export default {
         landmarks: landmarks[0].landmarks
       });
     },
+    showRing(landmarks, ringAngle) {
+      handScene.drawRing({
+        model: this.ring,
+        scale_rate: 0.15,
+        landmarks: landmarks[0].landmarks,
+        angle: ringAngle
+      });
+    },
+    hideRing() {
+      this.ringAngle = 0;
+      handScene.hideRing({ model: this.ring });
+    },
     hideModels() {
       //非表示オブジェクト
       for (let i = 0; i < this.Images.length; i++) {
@@ -220,6 +250,16 @@ export default {
     hideAll() {
       for (let i = 0; i < this.Images.length; i++) {
         handScene.hideModel({ model: this.Images[i] });
+      }
+    }
+  },
+  watch: {
+    ImageIndex: {
+      handler(newValue, oldValue) {
+        this.hideRing();
+        if (newValue !== oldValue) {
+          this.ring.obj.visible = true;
+        }
       }
     }
   }
