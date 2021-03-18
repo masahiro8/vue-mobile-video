@@ -62,7 +62,7 @@ const randomText = (str = "--", time, interval, callback) => {
 
 self.addEventListener(
   "message",
-  function(e) {
+  (e) => {
     const { text, time, interval } = e.data;
     randomText(text, time, interval, (t) => {
       self.postMessage(t);

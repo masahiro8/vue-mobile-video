@@ -10,10 +10,11 @@
   </div>
 </template>
 <script>
+import Worker from "worker-loader!../worker.js";
 import { videoStream } from "../components/video/videoStream.js";
 import { handpose3d } from "../components/tf/Handpose.js";
 import { handScene } from "../components/threejs/HandScene.js";
-import { randomText } from "../components/text/randomText.js";
+// import { randomText } from "../components/text/randomText.js";
 
 const delayTimer = () => {
   let timer = null;
@@ -157,10 +158,14 @@ export default {
       const texts = [...this.data[this.ImageIndex].text];
       let _texts = new Array(texts.length);
       for (let i = 0; i < texts.length; i++) {
-        randomText(texts[i], 50, 20, (t) => {
-          _texts[i] = t;
-          this.$emit("set-text", _texts);
-        });
+        setTimeout(()=>{
+          const w = new Worker();
+          w.postMessage({ text:texts[i], time:50, interval:20 });
+          w.addEventListener("message", (t) => {
+            _texts[i] = t.data;
+            this.$emit("set-text", [..._texts]);
+          });
+        },100*i);
       }
     },
     //指を描画後に人差し指と親指の距離を取得

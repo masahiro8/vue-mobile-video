@@ -12,10 +12,26 @@ import Worker from "worker-loader!./worker.js";
 import VideoToCanvas from "./page/VideoToCanvas";
 
 const DATA = [
-  { path: "./images/vrmonkey_512_512.jpg", text: ["© Backham Co., Ltd."] },
+  { 
+    path: "./images/vrmonkey_512_512.jpg",
+    text: [
+      "© Backham Co., Ltd.",
+      "We know what it takes to develop ",
+      "a successful AI/AR products.",
+      "That's why we deliver success ",
+      "and make your apps stand out in the market."
+    ]
+  },
   {
     path: "./images/LOGO_512.jpg",
-    text: ["韓国コスメの", "バーチャルメイクサービス", "MAHOU MAKE"],
+    text: [
+      "韓国コスメの",
+      "バーチャルメイクサービス",
+      "MAHOU MAKE",
+      "Wake up to Make up,",
+      "Right here Right Now!😂😂",
+      "LIVE VIRTUAL MAKE-UP CAMERA"
+    ],
   },
 ];
 
@@ -39,13 +55,13 @@ export default {
 
       let _texts = new Array(this.texts.length);
       for (let i = 0; i < this.texts.length; i++) {
-        //worker
-        const w = new Worker();
-        w.postMessage({ text:this.texts[i], time:50, interval:20 });
-        w.addEventListener("message", (t) => {
-          _texts[i] = t.data;
-          this.texts = [..._texts];
-        });
+          //worker
+          const w = new Worker();
+          w.postMessage({ text:this.texts[i], time:50, interval:20 });
+          w.addEventListener("message", (t) => {
+            _texts[i] = t.data;
+            this.texts = [..._texts];
+          });
       }
       const timer = setTimeout(() => {
         if (this.isLoading) {
