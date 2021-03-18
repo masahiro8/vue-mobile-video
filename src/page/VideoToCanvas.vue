@@ -43,7 +43,7 @@ export default {
       timer: delayTimer(),
       Images: [], //画像を設定
       ImageIndex: 0, //表示する画像のindex
-      commet: null
+      comet: null
     };
   },
   props: {
@@ -81,16 +81,17 @@ export default {
         this.loadModels();
         console.log("models loaded");
 
-        const loadCommet = (path) => {
+        const loadComet = (path) => {
           return new Promise((resolve) => {
-            const model = handScene.addCommet({
+            const model = handScene.addComet({
               path: path
             });
             resolve(model);
           });
         };
 
-        this.commet = await loadCommet("/images/circle.png");
+        this.comet = await loadComet("/images/circle.png");
+        this.hideComet();
 
         //ここで手の検出情報を取得
         handpose3d({
@@ -111,7 +112,7 @@ export default {
                   this.updateGesture(result);
                 },
                 fingerEdgesCallback: (thumb, index) => {
-                  this.updateEdges(thumb, index);
+                  this.updateEdges(index);
                 }
               });
             }
@@ -136,7 +137,7 @@ export default {
       const loadMmodel = (path) => {
         return new Promise((resolve) => {
           const model = handScene.addPlane({
-            path: path,
+            path: path
           });
           resolve(model);
         });
@@ -158,14 +159,14 @@ export default {
       const texts = [...this.data[this.ImageIndex].text];
       let _texts = new Array(texts.length);
       for (let i = 0; i < texts.length; i++) {
-        setTimeout(()=>{
+        setTimeout(() => {
           const w = new Worker();
-          w.postMessage({ text:texts[i], time:50, interval:20 });
+          w.postMessage({ text: texts[i], time: 50, interval: 20 });
           w.addEventListener("message", (t) => {
             _texts[i] = t.data;
             this.$emit("set-text", [..._texts]);
           });
-        },100*i);
+        }, 100 * i);
       }
     },
     //指を描画後に人差し指と親指の距離を取得
@@ -192,14 +193,19 @@ export default {
         }
       }
     },
-    updateEdges(thumb, index) {
-      console.log("thumb", thumb);
-
-      handScene.drawCommet({
-        model: this.commet,
-        scale_rate: 5.0,
+    updateEdges(index) {
+      //指先の座標が取れてる時
+      this.showComet(index);
+    },
+    showComet(index) {
+      handScene.drawComet({
+        model: this.comet,
+        scale_rate: 1.0,
         landmarks: index
       });
+    },
+    hideComet() {
+      handScene.hideComet({ model: this.comet });
     },
     showModel(landmarks) {
       if (this.switch) {

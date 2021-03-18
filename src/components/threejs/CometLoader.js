@@ -1,14 +1,14 @@
 import * as THREE from "three";
 // 画像を読み込む
-export const CommetLoader = (path, callback) => {
-  let circlesLength = 500;
+export const CometLoader = (path, callback) => {
+  let circlesLength = 300;
   let circles = [];
 
   class Circle {
     constructor(texture, geometry) {
       let material = new THREE.MeshBasicMaterial({
         map: texture,
-        color: 0x4169e1,
+        color: 0xbacbff,
         transparent: true,
         opacity: 0.7,
         blending: THREE.AdditiveBlending
@@ -30,18 +30,16 @@ export const CommetLoader = (path, callback) => {
 
   let wrap = new THREE.Object3D();
 
-  let texture = new THREE.TextureLoader().load(path);
+  let texture = new THREE.TextureLoader().load(path, () => {
+    let geometry = new THREE.PlaneGeometry(10, 10);
 
-  texture.image = texture;
-  texture.needsUpdate = true;
-  let geometry = new THREE.PlaneGeometry(5, 5);
+    for (let i = 0; i < circlesLength; i++) {
+      let circle = new Circle(texture, geometry);
 
-  for (let i = 0; i < circlesLength; i++) {
-    let circle = new Circle(texture, geometry);
+      wrap.add(circle.mesh);
+      circles.push(circle);
+    }
 
-    wrap.add(circle.mesh);
-    circles.push(circle);
-  }
-
-  callback(wrap, circles);
+    callback(wrap, circles);
+  });
 };
