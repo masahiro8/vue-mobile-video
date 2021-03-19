@@ -3,6 +3,7 @@ import { getGesture, getEdges } from "./FingerStatus";
 import { ModelLoader } from "./ModelLoader";
 import { PlaneLoader } from "./PlaneLoader";
 import { CommetLoader } from "./CommetLoader";
+import { StarLoader } from "./StarLoader";
 import { theta } from "../../util/vector";
 import { getDistance } from "./FingerSwitch";
 /**
@@ -21,6 +22,13 @@ const _handScene = () => {
   let models = [];
   let isFingerMesh; //指のモデルの表示フラグ
   let _circles = [];
+  let _stars = [];
+  let bound = {
+    right: 150,
+    left: -150,
+    top: 150,
+    bottom: -150
+  };
 
   //指先
   const edges = {
@@ -130,11 +138,14 @@ const _handScene = () => {
     for (let i = 0; i < _circles.length; i++) {
       _circles[i].mesh.material.opacity -= _circles[i].lifeCount;
 
+      //消えた物を復活させる（無限に循環）
       if (_circles[i].mesh.material.opacity <= 0) {
         _circles[i].mesh.position.x = -0.5 + Math.random() * 1;
         _circles[i].mesh.position.y = -0.5 + Math.random() * 1;
         _circles[i].mesh.material.opacity = 1.0;
       }
+
+      //粒子の移動
       _circles[i].mesh.position.x +=
         _circles[i].xMoveSpeed * (_circles[i].xDirections ? 1 : -1);
       _circles[i].mesh.position.y +=
@@ -147,6 +158,53 @@ const _handScene = () => {
     model.obj.visible = true;
     model.obj.rotation.x = Math.PI / -2; //blenderのz方向とthreejsのz方向が違うので補正
     // model.obj.lookAt(p1);
+  };
+
+  const addStar = ({ path }) => {
+    return new Promise((resolved) => {
+      const index = models.length;
+      models.push({
+        id: index,
+        obj: new THREE.Object3D()
+      });
+
+      StarLoader(path, (obj, stars) => {
+        _stars = stars;
+        obj.rotation.x = Math.PI / 2;
+        models[index].obj.add(obj);
+        models[index].obj.visible = true;
+        scene.add(models[index].obj);
+        resolved(models[index], _stars);
+      });
+    });
+  };
+
+  const drawStar = ({ model, scale_rate, landmarks }) => {
+    for (let i = 0; i < _stars.length; i++) {
+      _stars[i].mesh.position.x +=
+        _stars[i].xMoveSpeed * (_stars[i].xDirection ? 1 : -1);
+      _stars[i].mesh.position.y +=
+        _stars[i].yMoveSpeed * (_stars[i].yDirection ? 1 : -1);
+
+      //boundの範囲を超えたら中心（指先の座標）に戻す（無限に循環）
+      if (
+        _stars[i].mesh.position.x > landmarks.x + bound.right ||
+        _stars[i].mesh.position.x < landmarks.x + bound.left ||
+        _stars[i].mesh.position.y > landmarks.y + bound.top ||
+        _stars[i].mesh.position.y < landmarks.y + bound.bottom
+      ) {
+        _stars[i].mesh.position.x = landmarks.x;
+        _stars[i].mesh.position.y = landmarks.y;
+      }
+
+      _stars[i].mesh.rotation.z += 0.5;
+    }
+
+    //中心に表示
+    model.obj.position.set(0, 0, 0);
+    model.obj.scale.set(scale_rate, scale_rate, scale_rate);
+    model.obj.visible = true;
+    model.obj.rotation.x = Math.PI / -2;
   };
 
   //モデルを追加
@@ -329,7 +387,9 @@ const _handScene = () => {
     addModel,
     addPlane,
     addCommet,
+    addStar,
     drawCommet,
+    drawStar,
     drawModel,
     hideModel
   };
