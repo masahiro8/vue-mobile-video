@@ -40,10 +40,13 @@ export default {
   data: () => {
     return {
       switch: false,
+      isImageShow:true,//画像の表示フラグ
       timer: delayTimer(),
       Images: [], //画像を設定
       ImageIndex: 0, //表示する画像のindex
-      commet: null
+      commet: null,
+      triangle: null,//三角形
+      lines:null,//線
     };
   },
   props: {
@@ -92,6 +95,17 @@ export default {
 
         this.commet = await loadCommet("/images/circle.png");
 
+        //三角形を初期化
+        this.triangle = await handScene.addTriangle();
+
+        //指
+        this.lines = [0x00ff00,0x00ff66,0x00ffaa,0x00ffff];
+        this.lines =  await Promise.all(
+          this.lines.map(async (color) => {
+            return await handScene.addLine({color});
+          })
+        );
+
         //ここで手の検出情報を取得
         handpose3d({
           ref: "srcVideo",
@@ -105,24 +119,30 @@ export default {
                 index: i,
                 landmarks: landmarks[i].landmarks,
                 fingerDistanceCallback: (result) => {
-                  this.updateSwitch(result);
+                  //人差し指と親指をくっつけたらコールバックされる
+                  this.updateSwitch(result ,()=>{
+                    //画像を変更
+                    if (this.ImageIndex === this.Images.length - 1) {
+                      this.ImageIndex = 0;
+                    } else {
+                      this.ImageIndex++;
+                    }
+                    //テキスト描画
+                    this.setText();
+                  });
                 },
-                gestureStatusCallback: (result) => {
-                  this.updateGesture(result);
+                //じゃんけん結果を取得
+                gestureStatusCallback: ({result, handObjects}) => {
+                  this.updateGesture({result, handObjects});
                 },
-                fingerEdgesCallback: (thumb, index) => {
-                  this.updateEdges(thumb, index);
+                //親指と人差し指の先端の位置を取得
+                fingerEdgesCallback: ({thumb, index, middle}) => {
+                  this.updateEdges(thumb, index, middle);
                 }
               });
             }
 
             //オブジェクトを表示
-            // handScene.drawModel({
-            //   model: mlogo,
-            //   scale_rate: 0.15,
-            //   landmarks: landmarks[0].landmarks,
-            // });
-
             this.hideModels();
             this.showModel(landmarks);
           }
@@ -150,8 +170,43 @@ export default {
         })
       );
     },
-    updateGesture(result) {
-      console.log("gesture", result);
+    //ジェスチャーから描画
+    updateGesture({result, handObjects}) {
+      // console.log("gesture", result);
+      //チョキの場合
+      if(result.length && result[0] === "CHOKI"){
+        //画像は描画しない
+        this.isImageShow = false;
+        //三角形描画
+        handScene.drawTriangle({
+          model:this.triangle,
+          thumb:handObjects["thumb"][1],
+          index:handObjects["index"][2],
+          middle:handObjects["middle"][2]
+        });
+      } else if(result.length && result[0] === "PAA"){
+        //画像は描画しない
+        this.isImageShow = false;
+        //三角形描画
+        handScene.drawPaaLines({lines:this.lines,handObjects});
+      }else {
+        //画像は描画する
+        this.isImageShow = true;
+        //非表示
+        handScene.drawTriangle({
+          model:this.triangle,
+          thumb:null,
+          index:null,
+          middle:null
+        });
+        this.lines.forEach((model) => {
+          handScene.drawLine({
+            model,
+            point1:null,
+            point2:null,
+          });
+        });
+      }
     },
     //テキストアニメーション
     setText() {
@@ -169,40 +224,35 @@ export default {
       }
     },
     //指を描画後に人差し指と親指の距離を取得
-    updateSwitch(result) {
+    updateSwitch(result,callback) {
       if (this.switch !== result) {
         //result => true 閉じてる、false 開いてる
         this.switch = result;
         if (result) {
           //300ms以上閉じるとコールバック
           this.timer.setTimer(300, () => {
-            //トリガー
-            //ImageIndexを更新
-            if (this.ImageIndex === this.Images.length - 1) {
-              this.ImageIndex = 0;
-            } else {
-              this.ImageIndex++;
-            }
-
-            console.log("--", this.ImageIndex);
-            this.setText();
+            callback();
           });
         } else {
           this.timer.clearTimer();
         }
       }
     },
-    updateEdges(thumb, index) {
-      console.log("thumb", thumb);
+    //thumb, index, middle
+    updateEdges(thumb, index, middle) {
+      const v = [thumb, index, middle];
+      console.log("v =", v.length);
 
-      handScene.drawCommet({
-        model: this.commet,
-        scale_rate: 5.0,
-        landmarks: index
-      });
+      //パーティクル描画
+      // handScene.drawCommet({
+      //   model: this.commet,
+      //   scale_rate: 5.0,
+      //   landmarks: index
+      // });
+
     },
     showModel(landmarks) {
-      if (this.switch) {
+      if (this.switch || !this.isImageShow) {
         this.hideAll();
         return;
       }

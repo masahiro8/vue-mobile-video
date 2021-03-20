@@ -109,8 +109,13 @@ export const getFingerStatusByPosition = (handmeshes, fingerIndex) => {
   return position;
 };
 
+/**
+ *
+ * @param {*} param0
+ */
 export const getEdges = ({ handmeshes, callback }) => {
   const thumb = handmeshes[4].position.clone();
   const index = handmeshes[8].position.clone();
-  callback(thumb, index);
+  const middle = handmeshes[12].position.clone();
+  callback({ thumb, index, middle });
 };

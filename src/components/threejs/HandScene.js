@@ -5,6 +5,9 @@ import { PlaneLoader } from "./PlaneLoader";
 import { CommetLoader } from "./CommetLoader";
 import { theta } from "../../util/vector";
 import { getDistance } from "./FingerSwitch";
+import { TriangleLoader } from "./TriangleLoader"; //{TriangleModel}
+import { LineLoader } from "./LineLoader";
+
 /**
  * threejsのベクトル演算
  * https://qiita.com/aa_debdeb/items/c58d5eda9a4052b5dd2f
@@ -17,10 +20,13 @@ const _handScene = () => {
   let renderer;
   let hands = [];
   let handMeshes = [];
+  let handObjects = {};
   let video;
   let models = [];
   let isFingerMesh; //指のモデルの表示フラグ
   let _circles = [];
+  let triangles = []; //三角
+  let lines = [];
 
   //指先
   const edges = {
@@ -28,7 +34,19 @@ const _handScene = () => {
     index: [6, 7, 8],
     middle: [10, 11, 12],
     ring: [14, 15, 16],
-    pinky: [18, 19, 20]
+    pinky: [18, 19, 20],
+  };
+
+  //ランドマークからObjectで返す
+  //index = 0 が指の先になってて、edgesと並びが逆なの注意
+  const getHandObject = (landmarks) => {
+    let obj = {};
+    Object.keys(edges).forEach((key) => {
+      obj[key] = edges[key].reverse().map((index) => {
+        return webcam2space(...landmarks[index]);
+      });
+    });
+    return obj;
   };
 
   const init = ({
@@ -38,7 +56,7 @@ const _handScene = () => {
     videoRef,
     overflowRef,
     showFingerMesh,
-    handNumber
+    handNumber,
   }) => {
     return new Promise((resolved) => {
       isFingerMesh = showFingerMesh;
@@ -94,7 +112,7 @@ const _handScene = () => {
       const index = models.length;
       models.push({
         id: index,
-        obj: new THREE.Object3D()
+        obj: new THREE.Object3D(),
       });
 
       PlaneLoader(path, (obj) => {
@@ -112,7 +130,7 @@ const _handScene = () => {
       const index = models.length;
       models.push({
         id: index,
-        obj: new THREE.Object3D()
+        obj: new THREE.Object3D(),
       });
 
       CommetLoader(path, (obj, circles) => {
@@ -155,7 +173,7 @@ const _handScene = () => {
       const index = models.length;
       models.push({
         id: index,
-        obj: new THREE.Object3D()
+        obj: new THREE.Object3D(),
       });
 
       ModelLoader(path, (obj) => {
@@ -178,11 +196,11 @@ const _handScene = () => {
     const rot = (c, p1, p2) => {
       const camera = {
         x: c.x - p1.x,
-        y: c.z - p1.z
+        y: c.z - p1.z,
       };
       const point = {
         x: p2.x - p1.x,
-        y: p2.z - p1.z
+        y: p2.z - p1.z,
       };
       const rad = theta(camera, point);
       return rad;
@@ -227,7 +245,7 @@ const _handScene = () => {
       const mesh = new THREE.Mesh(
         new THREE.CylinderGeometry(10, 10, 1, 32),
         new THREE.MeshPhongMaterial({
-          color: 0x00ff7f
+          color: 0x00ff7f,
         })
       );
       mesh.rotation.x = Math.PI / 2;
@@ -249,7 +267,7 @@ const _handScene = () => {
     landmarks,
     fingerDistanceCallback,
     gestureStatusCallback,
-    fingerEdgesCallback
+    fingerEdgesCallback,
   }) => {
     //画面サイズの中央位置を(0,0,0)として補正
     //メッシュを描画
@@ -275,6 +293,9 @@ const _handScene = () => {
       handMeshes[index][i].scale.z = p0.distanceTo(p1); //次のパーツとの距離にスケールをかける
       handMeshes[index][i].lookAt(p1); //zを次のパーツ方向に向ける
       handMeshes[index][i].visible = false;
+
+      //オブジェクト化
+      handObjects = getHandObject(landmarks);
     };
 
     //指の骨モデルを表示
@@ -292,7 +313,9 @@ const _handScene = () => {
     if (gestureStatusCallback) {
       getGesture({
         handmeshes: handMeshes[0],
-        callback: gestureStatusCallback
+        callback: (result) => {
+          gestureStatusCallback({ result, handObjects });
+        },
       });
     }
 
@@ -300,14 +323,15 @@ const _handScene = () => {
     if (fingerDistanceCallback) {
       getDistance({
         handmeshes: handMeshes[0],
-        callback: fingerDistanceCallback
+        callback: fingerDistanceCallback,
       });
     }
 
     if (fingerEdgesCallback) {
+      //親指と人差し指の先端の位置を取得
       getEdges({
         handmeshes: handMeshes[0],
-        callback: fingerEdgesCallback
+        callback: fingerEdgesCallback,
       });
     }
   };
@@ -323,6 +347,135 @@ const _handScene = () => {
   };
   */
 
+  const addTriangle = async () => {
+    // return await TriangleModel.addTriangle({
+    //   scene: scene,
+    //   triangles: triangles,
+    // });
+    return new Promise((resolved) => {
+      const index = triangles.length;
+      triangles.push({
+        id: index,
+        obj: new THREE.Line(),
+      });
+
+      //初期化
+      const points = [
+        new THREE.Vector3(),
+        new THREE.Vector3(),
+        new THREE.Vector3(),
+      ];
+      TriangleLoader({
+        points: points,
+        callback: (obj) => {
+          triangles[index].obj = obj;
+          triangles[index].obj.visible = true;
+          scene.add(triangles[index].obj);
+          resolved(triangles[index]);
+        },
+      });
+    });
+  };
+
+  /**
+   * 三角形を描画
+   * @param {Object} param0
+   */
+  const drawTriangle = async ({ model, thumb, index, middle }) => {
+    // TriangleModel.drawTriangle({ model, thumb, index, middle });
+    if (!thumb && !index && !middle) {
+      //参画を非表示
+      triangles[model.id].obj.geometry.setFromPoints([
+        new THREE.Vector3(),
+        new THREE.Vector3(),
+        new THREE.Vector3(),
+        new THREE.Vector3(),
+      ]);
+      triangles[model.id].obj.visible = false;
+      return;
+    }
+
+    const vecs = [thumb, index, middle, thumb];
+    triangles[model.id].obj.geometry.setFromPoints(vecs);
+    triangles[model.id].obj.visible = true;
+
+    //残像を描画
+    const obj_clone = triangles[model.id].obj.clone();
+    scene.add(obj_clone);
+    const clone = await addTriangle();
+    clone.obj.geometry.setFromPoints(vecs);
+    clone.obj.visible = true;
+    setTimeout(() => {
+      clone.obj.visible = false;
+    }, 1000);
+  };
+
+  const addLine = async ({ color }) => {
+    return new Promise((resolved) => {
+      const index = lines.length;
+      lines.push({
+        id: index,
+        obj: new THREE.Line(),
+        color: color,
+      });
+
+      //初期化
+      const points = [new THREE.Vector3(), new THREE.Vector3()];
+      LineLoader({
+        points: points,
+        color,
+        callback: (obj) => {
+          lines[index].obj = obj;
+          lines[index].obj.visible = true;
+          scene.add(lines[index].obj);
+          resolved(lines[index]);
+        },
+      });
+    });
+  };
+  const drawLine = async ({ model, point1, point2 }) => {
+    if (!point1 && !point2) {
+      //参画を非表示
+      lines[model.id].obj.geometry.setFromPoints([
+        new THREE.Vector3(),
+        new THREE.Vector3(),
+      ]);
+      lines[model.id].obj.visible = false;
+      return;
+    }
+
+    const vecs = [point1, point2];
+    lines[model.id].obj.geometry.setFromPoints(vecs);
+    lines[model.id].obj.visible = true;
+
+    //残像を描画
+    const obj_clone = lines[model.id].obj.clone();
+    scene.add(obj_clone);
+    const clone = await addLine({ color: lines[model.id].color });
+    clone.obj.geometry.setFromPoints(vecs);
+    clone.obj.visible = true;
+    setTimeout(() => {
+      clone.obj.visible = false;
+    }, 1000);
+  };
+
+  const drawPaaLines = ({ lines, handObjects }) => {
+    //三角形描画
+    const _points = [
+      [handObjects["index"][1], handObjects["index"][2]],
+      [handObjects["middle"][1], handObjects["middle"][2]],
+      [handObjects["ring"][1], handObjects["ring"][2]],
+      [handObjects["pinky"][1], handObjects["pinky"][2]],
+    ];
+    lines.forEach((model, index) => {
+      drawLine({
+        model,
+        point1: _points[index][0],
+        point2: _points[index][1],
+      });
+    });
+  };
+
   return {
     init,
     drawHand,
@@ -331,7 +484,12 @@ const _handScene = () => {
     addCommet,
     drawCommet,
     drawModel,
-    hideModel
+    hideModel,
+    addTriangle,
+    drawTriangle,
+    addLine,
+    drawLine,
+    drawPaaLines,
   };
 };
 
