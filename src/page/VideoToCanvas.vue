@@ -14,7 +14,6 @@ import Worker from "worker-loader!../worker.js";
 import { videoStream } from "../components/video/videoStream.js";
 import { handpose3d } from "../components/tf/Handpose.js";
 import { handScene } from "../components/threejs/HandScene.js";
-// import { randomText } from "../components/text/randomText.js";
 
 const delayTimer = () => {
   let timer = null;
@@ -47,6 +46,8 @@ export default {
       commet: null,
       triangle: null,//三角形
       lines:null,//線
+      circle:null,
+      prevHandObjects:{}
     };
   },
   props: {
@@ -105,6 +106,15 @@ export default {
             return await handScene.addLine({color});
           })
         );
+
+        //輪
+        this.circle = await handScene.addShapes([
+          { radius: 10, segments: 3, color: 0xffffff },
+          { radius: 10, segments: 4, color: 0xffffff },
+          { radius: 10, segments: 5, color: 0xffffff },
+          { radius: 10, segments: 6, color: 0xffffff },
+          { radius: 10, segments: 8, color: 0xffffff },
+        ]);
 
         //ここで手の検出情報を取得
         handpose3d({
@@ -170,35 +180,11 @@ export default {
         })
       );
     },
+    
     //ジェスチャーから描画
     updateGesture({result, handObjects}) {
-      // console.log("gesture", result);
-      //チョキの場合
-      if(result.length && result[0] === "CHOKI"){
-        //画像は描画しない
-        this.isImageShow = false;
-        //三角形描画
-        handScene.drawTriangle({
-          model:this.triangle,
-          thumb:handObjects["thumb"][1],
-          index:handObjects["index"][2],
-          middle:handObjects["middle"][2]
-        });
-      } else if(result.length && result[0] === "PAA"){
-        //画像は描画しない
-        this.isImageShow = false;
-        //三角形描画
-        handScene.drawPaaLines({lines:this.lines,handObjects});
-      }else {
-        //画像は描画する
-        this.isImageShow = true;
-        //非表示
-        handScene.drawTriangle({
-          model:this.triangle,
-          thumb:null,
-          index:null,
-          middle:null
-        });
+
+      const hideLines = () => {
         this.lines.forEach((model) => {
           handScene.drawLine({
             model,
@@ -207,6 +193,79 @@ export default {
           });
         });
       }
+
+      const hideTriangles = () =>{
+        handScene.drawTriangle({
+          model:this.triangle,
+          points:null
+        });
+      }
+
+      const hideCircles = () =>{
+        handScene.drawShapes({
+          model:this.circle,
+          center:null,
+          radius: 0
+        });
+      }
+
+      //最初に全部消す
+      hideLines();
+      hideTriangles();
+      hideCircles();
+
+      //チョキの場合
+      if(result.length && result[0] === "CHOKI"){
+        //画像は描画しない
+        this.isImageShow = false;
+        
+        //三角形描画
+        handScene.drawTriangle({
+          model:this.triangle,
+          points:[
+            handObjects["thumb"][1],
+            handObjects["index"][2],
+            handObjects["middle"][2],
+            handObjects["thumb"][1]
+          ],
+        });
+      
+      //パーの場合
+      } else if(result.length && result[0] === "PAA"){
+        //画像は描画しない
+        this.isImageShow = false;
+
+        //三角形描画
+        handScene.drawPaaLines({
+          lines:this.lines,
+          points:[
+            [handObjects["index"][2], this.prevHandObjects["index"][2]],
+            [handObjects["middle"][2], this.prevHandObjects["middle"][2]],
+            [handObjects["ring"][2], this.prevHandObjects["ring"][2]],
+            [handObjects["pinky"][2], this.prevHandObjects["pinky"][2]],
+          ]
+        });
+      
+      //グーの場合
+      } else if(result.length && result[0] === "GUU"){
+        //画像は描画しない
+        this.isImageShow = false;
+
+        //半径
+        const radius = handObjects["thumb"][1].distanceTo(handObjects["thumb"][0]);
+
+        //三角形描画
+        handScene.drawShapes({
+          model:this.circle,
+          center:handObjects["thumb"][1],
+          radius:radius * 0.3
+        });
+
+      } else {
+        //画像は描画する
+        this.isImageShow = true;
+      }
+      this.prevHandObjects = handObjects;
     },
     //テキストアニメーション
     setText() {
@@ -311,6 +370,7 @@ export default {
   left: 0;
   z-index: 99;
   transform: scale(-1, 1);
+  color:white;
   canvas {
     position: absolute;
   }

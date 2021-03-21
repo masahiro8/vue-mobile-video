@@ -6,13 +6,11 @@ export const TriangleLoader = ({ points, callback }) => {
   let geo;
   let mat;
   let lines;
-  //pointsはすでにVector3
-  // console.log("points", [...points]);
+
   const vecs = [];
-  vecs.push(points[0]);
-  vecs.push(points[1]);
-  vecs.push(points[2]);
-  vecs.push(points[0]);
+  points.forEach((point) => {
+    vecs.push(point);
+  });
   geo = new THREE.BufferGeometry();
   geo.elementNeedUpdate = true;
   mat = new THREE.LineBasicMaterial({

@@ -7,6 +7,7 @@ import { theta } from "../../util/vector";
 import { getDistance } from "./FingerSwitch";
 import { TriangleLoader } from "./TriangleLoader"; //{TriangleModel}
 import { LineLoader } from "./LineLoader";
+import { CircleLoader } from "./CircleLoader";
 
 /**
  * threejsのベクトル演算
@@ -26,7 +27,8 @@ const _handScene = () => {
   let isFingerMesh; //指のモデルの表示フラグ
   let _circles = [];
   let triangles = []; //三角
-  let lines = [];
+  let lines = []; //ライン
+  let shapes = [];
 
   //指先
   const edges = {
@@ -381,9 +383,8 @@ const _handScene = () => {
    * 三角形を描画
    * @param {Object} param0
    */
-  const drawTriangle = async ({ model, thumb, index, middle }) => {
-    // TriangleModel.drawTriangle({ model, thumb, index, middle });
-    if (!thumb && !index && !middle) {
+  const drawTriangle = async ({ model, points }) => {
+    if (!points) {
       //参画を非表示
       triangles[model.id].obj.geometry.setFromPoints([
         new THREE.Vector3(),
@@ -395,7 +396,7 @@ const _handScene = () => {
       return;
     }
 
-    const vecs = [thumb, index, middle, thumb];
+    const vecs = points;
     triangles[model.id].obj.geometry.setFromPoints(vecs);
     triangles[model.id].obj.visible = true;
 
@@ -459,21 +460,72 @@ const _handScene = () => {
     }, 1000);
   };
 
-  const drawPaaLines = ({ lines, handObjects }) => {
-    //三角形描画
-    const _points = [
-      [handObjects["index"][1], handObjects["index"][2]],
-      [handObjects["middle"][1], handObjects["middle"][2]],
-      [handObjects["ring"][1], handObjects["ring"][2]],
-      [handObjects["pinky"][1], handObjects["pinky"][2]],
-    ];
+  // パーのエフェクト
+  const drawPaaLines = ({ lines, points }) => {
     lines.forEach((model, index) => {
       drawLine({
         model,
-        point1: _points[index][0],
-        point2: _points[index][1],
+        point1: points[index][0],
+        point2: points[index][1],
       });
     });
+  };
+
+  /**
+   * 図形を作成
+   * @param {} param0
+   */
+  const genShape = ({ radius, segments, color }) => {
+    return new Promise((resolved) => {
+      let index = shapes.length;
+      //円
+      shapes.push({
+        id: index,
+        obj: new THREE.Mesh(),
+        color,
+        radius,
+        segments,
+      });
+      CircleLoader({
+        size: { radius, segments },
+        color,
+        callback: (obj) => {
+          shapes[index].obj = obj;
+          shapes[index].obj.visible = false;
+          scene.add(shapes[index].obj);
+          resolved();
+        },
+      });
+    });
+  };
+
+  const addShapes = (shapes) => {
+    // eslint-disable-next-line no-async-promise-executor
+    return new Promise(async (resolved) => {
+      await Promise.all(
+        shapes.map(async ({ radius, segments, color }) => {
+          return await genShape({ radius, segments, color });
+        })
+      );
+      resolved(shapes);
+    });
+  };
+
+  const drawShapes = ({ center, radius }) => {
+    if (!center) {
+      //三角を非表示
+      shapes.forEach((shape) => {
+        shape.obj.scale.set(0, 0, 0);
+        shape.obj.position.set(0, 0, 0);
+        shape.obj.visible = false;
+      });
+      return;
+    }
+
+    const index = Math.floor(Math.random() * shapes.length);
+    shapes[index].obj.scale.set(radius, radius, radius);
+    shapes[index].obj.position.set(center.x, center.y, center.z);
+    shapes[index].obj.visible = true;
   };
 
   return {
@@ -490,6 +542,8 @@ const _handScene = () => {
     addLine,
     drawLine,
     drawPaaLines,
+    addShapes,
+    drawShapes,
   };
 };
 
