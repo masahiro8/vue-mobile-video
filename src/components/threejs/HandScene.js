@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { getGesture, getEdges } from "./FingerStatus";
 import { ModelLoader } from "./ModelLoader";
 import { PlaneLoader } from "./PlaneLoader";
-import { CommetLoader } from "./CommetLoader";
+import { CometLoader } from "./CometLoader";
 import { theta } from "../../util/vector";
 import { getDistance } from "./FingerSwitch";
 import { TriangleLoader } from "./TriangleLoader"; //{TriangleModel}
@@ -127,7 +127,7 @@ const _handScene = () => {
     });
   };
 
-  const addCommet = ({ path }) => {
+  const addComet = ({ path }) => {
     return new Promise((resolved) => {
       const index = models.length;
       models.push({
@@ -135,7 +135,7 @@ const _handScene = () => {
         obj: new THREE.Object3D(),
       });
 
-      CommetLoader(path, (obj, circles) => {
+      CometLoader(path, (obj, circles) => {
         _circles = circles;
         obj.rotation.x = Math.PI / 2;
         models[index].obj.add(obj);
@@ -146,27 +146,33 @@ const _handScene = () => {
     });
   };
 
-  const drawCommet = ({ model, scale_rate, landmarks }) => {
+  const drawComet = ({ model, scale_rate, landmarks }) => {
     for (let i = 0; i < _circles.length; i++) {
       _circles[i].mesh.material.opacity -= _circles[i].lifeCount;
 
       if (_circles[i].mesh.material.opacity <= 0) {
-        _circles[i].mesh.position.x = -0.5 + Math.random() * 1;
-        _circles[i].mesh.position.y = -0.5 + Math.random() * 1;
+        _circles[i].mesh.position.x = landmarks.x;
+        _circles[i].mesh.position.y = landmarks.y;
         _circles[i].mesh.material.opacity = 1.0;
       }
       _circles[i].mesh.position.x +=
-        _circles[i].xMoveSpeed * (_circles[i].xDirections ? 1 : -1);
+        _circles[i].xMoveSpeed * (_circles[i].xDirection ? 1 : -1);
       _circles[i].mesh.position.y +=
-        _circles[i].yMoveSpeed * (_circles[i].yDirections ? 1 : -1);
+        _circles[i].yMoveSpeed * (_circles[i].yDirection ? 1 : -1);
     }
 
     //中心に表示
-    model.obj.position.set(landmarks.x, landmarks.y, landmarks.z);
+    // model.obj.position.set(landmarks.x, landmarks.y, landmarks.z);
+    model.obj.position.set(0, 0, 0);
     model.obj.scale.set(scale_rate, scale_rate, scale_rate);
     model.obj.visible = true;
     model.obj.rotation.x = Math.PI / -2; //blenderのz方向とthreejsのz方向が違うので補正
-    // model.obj.lookAt(p1);
+  };
+
+  const hideComet = ({ model }) => {
+    setTimeout(() => {
+      model.obj.visible = false;
+    }, 500);
   };
 
   //モデルを追加
@@ -533,8 +539,8 @@ const _handScene = () => {
     drawHand,
     addModel,
     addPlane,
-    addCommet,
-    drawCommet,
+    addComet,
+    drawComet,
     drawModel,
     hideModel,
     addTriangle,
@@ -544,6 +550,7 @@ const _handScene = () => {
     drawPaaLines,
     addShapes,
     drawShapes,
+    hideComet,
   };
 };
 
