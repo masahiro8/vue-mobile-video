@@ -46,8 +46,8 @@ export default {
       commet: null,
       triangle: null,//三角形
       lines:null,//線
-      circle:null,
-      prevHandObjects:{}
+      shapes:null,
+      prevHandObjects:null
     };
   },
   props: {
@@ -83,7 +83,6 @@ export default {
 
         //モデルをロード
         this.loadModels();
-        console.log("models loaded");
 
         const loadComet = (path) => {
           return new Promise((resolve) => {
@@ -109,7 +108,7 @@ export default {
         );
 
         //輪
-        this.circle = await handScene.addShapes([
+        this.shapes = await handScene.addShapes([
           { radius: 10, segments: 3, color: 0xffffff },
           { radius: 10, segments: 4, color: 0xffffff },
           { radius: 10, segments: 5, color: 0xffffff },
@@ -202,9 +201,9 @@ export default {
         });
       }
 
-      const hideCircles = () =>{
+      const hideShapes = () =>{
         handScene.drawShapes({
-          model:this.circle,
+          model:this.shapes,
           center:null,
           radius: 0
         });
@@ -213,55 +212,78 @@ export default {
       //最初に全部消す
       hideLines();
       hideTriangles();
-      hideCircles();
+      hideShapes();
 
-      //チョキの場合
-      if(result.length && result[0] === "CHOKI"){
-        //画像は描画しない
+      const changeShape = {
+        "CHOKI":()=>{
+          //三角形描画
+          handScene.drawTriangle({
+            model:this.triangle,
+            points:[
+              handObjects["thumb"][1],
+              handObjects["index"][2],
+              handObjects["middle"][2],
+              handObjects["thumb"][1]
+            ],
+          });
+        },
+        "PAA":()=>{
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["thumb"][1]
+          });
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["index"][2]
+          });
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["middle"][2]
+          });
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["ring"][2]
+          });
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["pinky"][2]
+          });
+        },
+        "GUU":()=>{
+          //半径
+          const radius = handObjects["thumb"][1].distanceTo(handObjects["thumb"][0]);
+          //三角形描画
+          handScene.drawShapes({
+            model:this.shapes,
+            center:handObjects["thumb"][1],
+            radius:radius * 0.3
+          });
+        },
+        "THREE":()=>{
+          //三角形描画
+          if( "index" in this.prevHandObjects == false ) {
+            return;
+          }
+          handScene.drawPaaLines({
+            lines:this.lines,
+            points:[
+              [handObjects["index"][2], this.prevHandObjects["index"][2]],
+              [handObjects["middle"][2], this.prevHandObjects["middle"][2]],
+              [handObjects["ring"][2], this.prevHandObjects["ring"][2]],
+              [handObjects["pinky"][2], this.prevHandObjects["pinky"][2]],
+            ]
+          });
+        }
+      }
+
+      if(result.length > 0 && result[0].length > 1){
         this.isImageShow = false;
-        
-        //三角形描画
-        handScene.drawTriangle({
-          model:this.triangle,
-          points:[
-            handObjects["thumb"][1],
-            handObjects["index"][2],
-            handObjects["middle"][2],
-            handObjects["thumb"][1]
-          ],
-        });
-      
-      //パーの場合
-      } else if(result.length && result[0] === "PAA"){
-        //画像は描画しない
-        this.isImageShow = false;
-
-        //三角形描画
-        handScene.drawPaaLines({
-          lines:this.lines,
-          points:[
-            [handObjects["index"][2], this.prevHandObjects["index"][2]],
-            [handObjects["middle"][2], this.prevHandObjects["middle"][2]],
-            [handObjects["ring"][2], this.prevHandObjects["ring"][2]],
-            [handObjects["pinky"][2], this.prevHandObjects["pinky"][2]],
-          ]
-        });
-      
-      //グーの場合
-      } else if(result.length && result[0] === "GUU"){
-        //画像は描画しない
-        this.isImageShow = false;
-
-        //半径
-        const radius = handObjects["thumb"][1].distanceTo(handObjects["thumb"][0]);
-
-        //三角形描画
-        handScene.drawShapes({
-          model:this.circle,
-          center:handObjects["thumb"][1],
-          radius:radius * 0.3
-        });
-
+        changeShape[result[0]]();
       } else {
         //画像は描画する
         this.isImageShow = true;
@@ -298,17 +320,16 @@ export default {
         }
       }
     },
-    updateEdges({index}) {
+    updateEdges() {
       //指先の座標が取れてる時
-      this.showComet(index);
     },
-    showComet(index) {
-      handScene.drawComet({
-        model: this.comet,
-        scale_rate: 1.0,
-        landmarks: index
-      });
-    },
+    // showComet(index) {
+    //   handScene.drawComet({
+    //     model: this.comet,
+    //     scale_rate: 1.0,
+    //     landmarks: index
+    //   });
+    // },
     hideComet() {
       handScene.hideComet({ model: this.comet });
     },

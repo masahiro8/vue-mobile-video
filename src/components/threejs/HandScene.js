@@ -505,15 +505,21 @@ const _handScene = () => {
     });
   };
 
-  const addShapes = (shapes) => {
+  /**
+   *
+   * 図形を生成
+   * @param {*} shapes
+   * @returns
+   */
+  const addShapes = (_shapes) => {
     // eslint-disable-next-line no-async-promise-executor
     return new Promise(async (resolved) => {
       await Promise.all(
-        shapes.map(async ({ radius, segments, color }) => {
+        _shapes.map(async ({ radius, segments, color }) => {
           return await genShape({ radius, segments, color });
         })
       );
-      resolved(shapes);
+      resolved(_shapes);
     });
   };
 

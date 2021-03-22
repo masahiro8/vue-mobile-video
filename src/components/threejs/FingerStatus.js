@@ -31,6 +31,7 @@ const GESTURE_STATUS = {
   PAA: [true, true, true, true],
   GUU: [false, false, false, false],
   CHOKI: [true, true, false, false],
+  THREE: [true, true, true, false],
 };
 
 //指の曲がりを判定する境界の角度
