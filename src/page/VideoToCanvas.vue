@@ -47,6 +47,7 @@ export default {
       triangle: null,//三角形
       lines:null,//線
       shapes:null,
+      circles:null,
       prevHandObjects:null
     };
   },
@@ -93,13 +94,14 @@ export default {
           });
         };
 
+        //もやもやを初期化
         this.comet = await loadComet("/images/circle.png");
         this.hideComet();
 
         //三角形を初期化
         this.triangle = await handScene.addTriangle();
 
-        //指
+        //線を初期化
         this.lines = [0x00ff00,0x00ff66,0x00ffaa,0x00ffff];
         this.lines =  await Promise.all(
           this.lines.map(async (color) => {
@@ -107,7 +109,7 @@ export default {
           })
         );
 
-        //輪
+        //図形を初期化
         this.shapes = await handScene.addShapes([
           { radius: 10, segments: 3, color: 0xffffff },
           { radius: 10, segments: 4, color: 0xffffff },
@@ -228,31 +230,12 @@ export default {
           });
         },
         "PAA":()=>{
-          handScene.drawComet({
-            model: this.comet,
-            scale_rate: 1.0,
-            landmarks: handObjects["thumb"][1]
+
+          let points = Object.entries(handObjects).map((value) => {
+            return [...value[1]];
           });
-          handScene.drawComet({
-            model: this.comet,
-            scale_rate: 1.0,
-            landmarks: handObjects["index"][2]
-          });
-          handScene.drawComet({
-            model: this.comet,
-            scale_rate: 1.0,
-            landmarks: handObjects["middle"][2]
-          });
-          handScene.drawComet({
-            model: this.comet,
-            scale_rate: 1.0,
-            landmarks: handObjects["ring"][2]
-          });
-          handScene.drawComet({
-            model: this.comet,
-            scale_rate: 1.0,
-            landmarks: handObjects["pinky"][2]
-          });
+          // points = points.flat();
+          handScene.drawCircles({fingers:points});
         },
         "GUU":()=>{
           //半径
@@ -269,6 +252,23 @@ export default {
           if( "index" in this.prevHandObjects == false ) {
             return;
           }
+
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["index"][2]
+          });
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["middle"][2]
+          });
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["ring"][2]
+          });
+          
           handScene.drawPaaLines({
             lines:this.lines,
             points:[
@@ -297,7 +297,7 @@ export default {
       for (let i = 0; i < texts.length; i++) {
         setTimeout(() => {
           const w = new Worker();
-          w.postMessage({ text: texts[i], time: 50, interval: 20 });
+          w.postMessage({ f:"randomText",text: texts[i], time: 50, interval: 20 });
           w.addEventListener("message", (t) => {
             _texts[i] = t.data;
             this.$emit("set-text", [..._texts]);
@@ -323,13 +323,6 @@ export default {
     updateEdges() {
       //指先の座標が取れてる時
     },
-    // showComet(index) {
-    //   handScene.drawComet({
-    //     model: this.comet,
-    //     scale_rate: 1.0,
-    //     landmarks: index
-    //   });
-    // },
     hideComet() {
       handScene.hideComet({ model: this.comet });
     },
@@ -416,5 +409,14 @@ export default {
   z-index: 2;
   transform: scale(-1, 1);
   box-sizing: border-box;
+}
+
+/**
+*エフェクトで使用
+ */
+.circleColor{
+  color:#b3fdbf;
+  color:#c4e9fe;
+  color:#fec4ed
 }
 </style>

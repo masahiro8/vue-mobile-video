@@ -8,6 +8,7 @@ import { getDistance } from "./FingerSwitch";
 import { TriangleLoader } from "./TriangleLoader"; //{TriangleModel}
 import { LineLoader } from "./LineLoader";
 import { CircleLoader } from "./CircleLoader";
+import Worker from "worker-loader!../../worker.js";
 
 /**
  * threejsのベクトル演算
@@ -29,6 +30,8 @@ const _handScene = () => {
   let triangles = []; //三角
   let lines = []; //ライン
   let shapes = [];
+  let circles = [];
+  let hand_shapes = [];
 
   //指先
   const edges = {
@@ -478,40 +481,35 @@ const _handScene = () => {
   };
 
   /**
-   * 図形を作成
-   * @param {} param0
-   */
-  const genShape = ({ radius, segments, color }) => {
-    return new Promise((resolved) => {
-      let index = shapes.length;
-      //円
-      shapes.push({
-        id: index,
-        obj: new THREE.Mesh(),
-        color,
-        radius,
-        segments,
-      });
-      CircleLoader({
-        size: { radius, segments },
-        color,
-        callback: (obj) => {
-          shapes[index].obj = obj;
-          shapes[index].obj.visible = false;
-          scene.add(shapes[index].obj);
-          resolved();
-        },
-      });
-    });
-  };
-
-  /**
    *
    * 図形を生成
    * @param {*} shapes
    * @returns
    */
   const addShapes = (_shapes) => {
+    const genShape = ({ radius, segments, color }) => {
+      return new Promise((resolved) => {
+        let index = shapes.length;
+        //円
+        shapes.push({
+          id: index,
+          obj: new THREE.Mesh(),
+          color,
+          radius,
+          segments,
+        });
+        CircleLoader({
+          size: { radius, segments },
+          color,
+          callback: (obj) => {
+            shapes[index].obj = obj;
+            shapes[index].obj.visible = false;
+            scene.add(shapes[index].obj);
+            resolved();
+          },
+        });
+      });
+    };
     // eslint-disable-next-line no-async-promise-executor
     return new Promise(async (resolved) => {
       await Promise.all(
@@ -519,7 +517,7 @@ const _handScene = () => {
           return await genShape({ radius, segments, color });
         })
       );
-      resolved(_shapes);
+      resolved(shapes);
     });
   };
 
@@ -540,6 +538,130 @@ const _handScene = () => {
     shapes[index].obj.visible = true;
   };
 
+  const addCircles = () => {
+    const genCircle = ({ radius, segments, color }) => {
+      return new Promise((resolved) => {
+        let index = circles.length;
+        //円
+        circles.push({
+          id: index,
+          obj: new THREE.Mesh(),
+          color,
+          radius,
+          segments,
+        });
+        CircleLoader({
+          size: { radius, segments },
+          color,
+          callback: (obj) => {
+            circles[index].obj = obj;
+            circles[index].obj.visible = false;
+            scene.add(circles[index].obj);
+            resolved();
+          },
+        });
+      });
+    };
+
+    const chunk = (arr, size) => {
+      return arr.reduce(
+        (newarr, _, i) =>
+          i % size ? newarr : [...newarr, arr.slice(i, i + size)],
+        []
+      );
+    };
+
+    let _circles = [...Array(200)]; //n個の円
+    _circles = _circles.map(() => {
+      return { radius: 5 + Math.random() * 10, segments: 32, color: 0xffffff };
+    });
+
+    // eslint-disable-next-line no-async-promise-executor
+    return new Promise(async (resolved) => {
+      await Promise.all(
+        _circles.map(async ({ radius, segments, color }) => {
+          return await genCircle({
+            radius,
+            segments,
+            color,
+          });
+        })
+      );
+      circles = chunk(circles, 14);
+      console.log("circles", circles);
+      resolved(circles);
+    });
+  };
+
+  /**
+   * 手の骨格に合わせて描画
+   */
+  const drawCircles = ({ fingers }) => {
+    //複数配列から２点の組み合わせを全て返す
+    const get2Points = (counter, line, res) => {
+      if (line.length == counter + 1) {
+        return res;
+      }
+      const point1 = {
+        x: line[counter].x,
+        y: line[counter].y,
+        z: line[counter].z,
+      };
+      const point2 = {
+        x: line[counter + 1].x,
+        y: line[counter + 1].y,
+        z: line[counter + 1].z,
+      };
+      res[counter] = [point1, point2];
+      counter = counter + 1;
+      return get2Points(counter, line, res);
+    };
+
+    //データを整形
+    const points = fingers
+      .map((line) => {
+        return get2Points(0, line, []);
+      })
+      .flat(1);
+
+    //ここから座標を取得
+    const w = new Worker();
+    w.postMessage({
+      f: "randamPosition",
+      points: points,
+      splitNum: 5,
+      randomNum: 8,
+      randomRadial: 8,
+    });
+    w.addEventListener("message", (r) => {
+      if (hand_shapes.length == 0) {
+        //初期はメッシュを作成
+        hand_shapes = r.data.map((position) => {
+          const size = 3 + Math.random() * 10;
+          const point = new THREE.Mesh(
+            new THREE.CircleGeometry(size, 24),
+            new THREE.MeshBasicMaterial({
+              color: [0xffffff, 0xb3fdbf, 0xc4e9fe, 0xfec4ed][
+                Math.floor(Math.random() * 4)
+              ],
+            })
+          );
+          let obj = new THREE.Object3D();
+          obj.add(point);
+          obj.visible = true;
+          obj.position.set(position.x, position.y, position.z);
+          scene.add(obj);
+          return obj;
+        });
+      } else {
+        //座標を更新
+        r.data.forEach((position, index) => {
+          hand_shapes[index].position.set(position.x, position.y, position.z);
+        });
+      }
+    });
+  };
+
   return {
     init,
     drawHand,
@@ -557,6 +679,8 @@ const _handScene = () => {
     addShapes,
     drawShapes,
     hideComet,
+    addCircles,
+    drawCircles,
   };
 };
 

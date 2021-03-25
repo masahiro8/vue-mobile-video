@@ -57,7 +57,7 @@ export default {
       for (let i = 0; i < this.texts.length; i++) {
           //worker
           const w = new Worker();
-          w.postMessage({ text:this.texts[i], time:50, interval:20 });
+          w.postMessage({ f:"randomText",text:this.texts[i], time:50, interval:20 });
           w.addEventListener("message", (t) => {
             _texts[i] = t.data;
             this.texts = [..._texts];

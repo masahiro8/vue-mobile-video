@@ -19,7 +19,12 @@ export const updateImageAndText = ({
   for (let i = 0; i < texts.length; i++) {
     setTimeout(() => {
       const w = new Worker();
-      w.postMessage({ text: texts[i], time: 50, interval: 20 });
+      w.postMessage({
+        f: "randomText",
+        text: texts[i],
+        time: 50,
+        interval: 20,
+      });
       w.addEventListener("message", (t) => {
         _texts[i] = t.data;
         callback([..._texts]);
