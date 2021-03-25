@@ -14,7 +14,6 @@ import Worker from "worker-loader!../worker.js";
 import { videoStream } from "../components/video/videoStream.js";
 import { handpose3d } from "../components/tf/Handpose.js";
 import { handScene } from "../components/threejs/HandScene.js";
-// import { randomText } from "../components/text/randomText.js";
 
 const delayTimer = () => {
   let timer = null;
@@ -40,10 +39,16 @@ export default {
   data: () => {
     return {
       switch: false,
+      isImageShow:true,//画像の表示フラグ
       timer: delayTimer(),
       Images: [], //画像を設定
       ImageIndex: 0, //表示する画像のindex
-      comet: null
+      commet: null,
+      triangle: null,//三角形
+      lines:null,//線
+      shapes:null,
+      circles:null,
+      prevHandObjects:null
     };
   },
   props: {
@@ -79,7 +84,6 @@ export default {
 
         //モデルをロード
         this.loadModels();
-        console.log("models loaded");
 
         const loadComet = (path) => {
           return new Promise((resolve) => {
@@ -90,8 +94,29 @@ export default {
           });
         };
 
+        //もやもやを初期化
         this.comet = await loadComet("/images/circle.png");
         this.hideComet();
+
+        //三角形を初期化
+        this.triangle = await handScene.addTriangle();
+
+        //線を初期化
+        this.lines = [0x00ff00,0x00ff66,0x00ffaa,0x00ffff];
+        this.lines =  await Promise.all(
+          this.lines.map(async (color) => {
+            return await handScene.addLine({color});
+          })
+        );
+
+        //図形を初期化
+        this.shapes = await handScene.addShapes([
+          { radius: 10, segments: 3, color: 0xffffff },
+          { radius: 10, segments: 4, color: 0xffffff },
+          { radius: 10, segments: 5, color: 0xffffff },
+          { radius: 10, segments: 6, color: 0xffffff },
+          { radius: 10, segments: 8, color: 0xffffff },
+        ]);
 
         //ここで手の検出情報を取得
         handpose3d({
@@ -106,24 +131,30 @@ export default {
                 index: i,
                 landmarks: landmarks[i].landmarks,
                 fingerDistanceCallback: (result) => {
-                  this.updateSwitch(result);
+                  //人差し指と親指をくっつけたらコールバックされる
+                  this.updateSwitch(result ,()=>{
+                    //画像を変更
+                    if (this.ImageIndex === this.Images.length - 1) {
+                      this.ImageIndex = 0;
+                    } else {
+                      this.ImageIndex++;
+                    }
+                    //テキスト描画
+                    this.setText();
+                  });
                 },
-                gestureStatusCallback: (result) => {
-                  this.updateGesture(result);
+                //じゃんけん結果を取得
+                gestureStatusCallback: ({result, handObjects}) => {
+                  this.updateGesture({result, handObjects});
                 },
-                fingerEdgesCallback: (thumb, index) => {
-                  this.updateEdges(index);
+                //親指と人差し指の先端の位置を取得
+                fingerEdgesCallback: ({thumb, index, middle}) => {
+                  this.updateEdges({thumb, index, middle});
                 }
               });
             }
 
             //オブジェクトを表示
-            // handScene.drawModel({
-            //   model: mlogo,
-            //   scale_rate: 0.15,
-            //   landmarks: landmarks[0].landmarks,
-            // });
-
             this.hideModels();
             this.showModel(landmarks);
           }
@@ -151,8 +182,113 @@ export default {
         })
       );
     },
-    updateGesture(result) {
-      console.log("gesture", result);
+    
+    //ジェスチャーから描画
+    updateGesture({result, handObjects}) {
+
+      const hideLines = () => {
+        this.lines.forEach((model) => {
+          handScene.drawLine({
+            model,
+            point1:null,
+            point2:null,
+          });
+        });
+      }
+
+      const hideTriangles = () =>{
+        handScene.drawTriangle({
+          model:this.triangle,
+          points:null
+        });
+      }
+
+      const hideShapes = () =>{
+        handScene.drawShapes({
+          model:this.shapes,
+          center:null,
+          radius: 0
+        });
+      }
+
+      //最初に全部消す
+      hideLines();
+      hideTriangles();
+      hideShapes();
+
+      const changeShape = {
+        "CHOKI":()=>{
+          //三角形描画
+          handScene.drawTriangle({
+            model:this.triangle,
+            points:[
+              handObjects["thumb"][1],
+              handObjects["index"][2],
+              handObjects["middle"][2],
+              handObjects["thumb"][1]
+            ],
+          });
+        },
+        "PAA":()=>{
+
+          let points = Object.entries(handObjects).map((value) => {
+            return [...value[1]];
+          });
+          // points = points.flat();
+          handScene.drawCircles({fingers:points});
+        },
+        "GUU":()=>{
+          //半径
+          const radius = handObjects["thumb"][1].distanceTo(handObjects["thumb"][0]);
+          //三角形描画
+          handScene.drawShapes({
+            model:this.shapes,
+            center:handObjects["thumb"][1],
+            radius:radius * 0.3
+          });
+        },
+        "THREE":()=>{
+          //三角形描画
+          if( "index" in this.prevHandObjects == false ) {
+            return;
+          }
+
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["index"][2]
+          });
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["middle"][2]
+          });
+          handScene.drawComet({
+            model: this.comet,
+            scale_rate: 1.0,
+            landmarks: handObjects["ring"][2]
+          });
+          
+          handScene.drawPaaLines({
+            lines:this.lines,
+            points:[
+              [handObjects["index"][2], this.prevHandObjects["index"][2]],
+              [handObjects["middle"][2], this.prevHandObjects["middle"][2]],
+              [handObjects["ring"][2], this.prevHandObjects["ring"][2]],
+              [handObjects["pinky"][2], this.prevHandObjects["pinky"][2]],
+            ]
+          });
+        }
+      }
+
+      if(result.length > 0 && result[0].length > 1){
+        this.isImageShow = false;
+        changeShape[result[0]]();
+      } else {
+        //画像は描画する
+        this.isImageShow = true;
+      }
+      this.prevHandObjects = handObjects;
     },
     //テキストアニメーション
     setText() {
@@ -161,7 +297,7 @@ export default {
       for (let i = 0; i < texts.length; i++) {
         setTimeout(() => {
           const w = new Worker();
-          w.postMessage({ text: texts[i], time: 50, interval: 20 });
+          w.postMessage({ f:"randomText",text: texts[i], time: 50, interval: 20 });
           w.addEventListener("message", (t) => {
             _texts[i] = t.data;
             this.$emit("set-text", [..._texts]);
@@ -170,45 +306,28 @@ export default {
       }
     },
     //指を描画後に人差し指と親指の距離を取得
-    updateSwitch(result) {
+    updateSwitch(result,callback) {
       if (this.switch !== result) {
         //result => true 閉じてる、false 開いてる
         this.switch = result;
         if (result) {
           //300ms以上閉じるとコールバック
           this.timer.setTimer(300, () => {
-            //トリガー
-            //ImageIndexを更新
-            if (this.ImageIndex === this.Images.length - 1) {
-              this.ImageIndex = 0;
-            } else {
-              this.ImageIndex++;
-            }
-
-            console.log("--", this.ImageIndex);
-            this.setText();
+            callback();
           });
         } else {
           this.timer.clearTimer();
         }
       }
     },
-    updateEdges(index) {
+    updateEdges() {
       //指先の座標が取れてる時
-      this.showComet(index);
-    },
-    showComet(index) {
-      handScene.drawComet({
-        model: this.comet,
-        scale_rate: 1.0,
-        landmarks: index
-      });
     },
     hideComet() {
       handScene.hideComet({ model: this.comet });
     },
     showModel(landmarks) {
-      if (this.switch) {
+      if (this.switch || !this.isImageShow) {
         this.hideAll();
         return;
       }
@@ -267,6 +386,7 @@ export default {
   left: 0;
   z-index: 99;
   transform: scale(-1, 1);
+  color:white;
   canvas {
     position: absolute;
   }
@@ -289,5 +409,14 @@ export default {
   z-index: 2;
   transform: scale(-1, 1);
   box-sizing: border-box;
+}
+
+/**
+*エフェクトで使用
+ */
+.circleColor{
+  color:#b3fdbf;
+  color:#c4e9fe;
+  color:#fec4ed
 }
 </style>

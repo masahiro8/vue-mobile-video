@@ -31,6 +31,7 @@ const GESTURE_STATUS = {
   PAA: [true, true, true, true],
   GUU: [false, false, false, false],
   CHOKI: [true, true, false, false],
+  THREE: [true, true, true, false],
 };
 
 //指の曲がりを判定する境界の角度
@@ -109,8 +110,13 @@ export const getFingerStatusByPosition = (handmeshes, fingerIndex) => {
   return position;
 };
 
+/**
+ *
+ * @param {*} param0
+ */
 export const getEdges = ({ handmeshes, callback }) => {
   const thumb = handmeshes[4].position.clone();
   const index = handmeshes[8].position.clone();
-  callback(thumb, index);
+  const middle = handmeshes[12].position.clone();
+  callback({ thumb, index, middle });
 };
