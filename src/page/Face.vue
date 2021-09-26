@@ -78,7 +78,7 @@
                 srcVideoId: "srcVideo",
                 landmarks,
               });
-              // faceScene.drawScreen({
+              // faceScene.drawBox({
               //   srcVideoId: "srcVideo",
               //   landmarks,
               // });

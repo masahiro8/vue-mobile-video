@@ -1,5 +1,10 @@
 import * as THREE from "three";
-import { TRIANGLES, UV } from "@/components/tf/face/landmarks.js";
+import {
+  TRIANGLES,
+  TRIANGLES_WRAP,
+  UV,
+  UV_WRAP,
+} from "@/components/tf/face/landmarks.js";
 import { VS_CODE, FS_CODE } from "@/components/threejs/face/shader/shader.js";
 import { deepCopy } from "@/util/util.js";
 /**
@@ -186,7 +191,7 @@ const _faceScene = () => {
     const scaleRate = screenRect.width / video.videoWidth;
 
     // 表示するインデックスを追加
-    const vispoint = [];
+    const vispoint = [0, 1, 73, 74, 2];
 
     for (let i = 0; i < TRIANGLES.length; i++) {
       for (let n = 0; n < vispoint.length; n++) {
@@ -231,29 +236,40 @@ const _faceScene = () => {
     const scaleRate = screenRect.width / video.videoWidth;
 
     // メッシュ用の配列を作成
-    let faces = new Float32Array(TRIANGLES.length * 3);
-    let normals = new Float32Array(TRIANGLES.length * 3); //頂点法線
+    let faces = new Float32Array(_landmarks.length * 3);
+    let normals = new Float32Array(_landmarks.length * 3); //頂点法線
 
-    for (let i = 0; i < TRIANGLES.length; i++) {
-      faces[i * 3] =
-        _landmarks[TRIANGLES[i]].x * scaleRate - screenRect.width / 2;
-      faces[i * 3 + 1] =
-        _landmarks[TRIANGLES[i]].y * scaleRate - screenRect.height / 2;
-      faces[i * 3 + 2] = _landmarks[TRIANGLES[i]].z;
-
+    // シェーダーではsetIndexが必須なので、facesでは最小の頂点情報を作成する
+    for (let i = 0; i < _landmarks.length; i++) {
+      faces[i * 3] = _landmarks[i].x * scaleRate - screenRect.width / 2;
+      faces[i * 3 + 1] = _landmarks[i].y * scaleRate - screenRect.height / 2;
+      faces[i * 3 + 2] = _landmarks[i].z;
       normals[i * 3] = 0.0;
       normals[i * 3 + 1] = 0.0;
       normals[i * 3 + 2] = 1.0;
     }
 
-    // index
-    let _indexes = [];
-    for (let i = 0; i < TRIANGLES.length; i++) _indexes[i] = TRIANGLES[i];
-    let indexes = new Uint32Array(_indexes);
+    // シェーダーを使用しない場合は、重複する頂点もまとめてfacesにぶっ込んでもOK
+    // for (let i = 0; i < _TRIANGLES.length; i++) {
+    //   faces[i * 3] =
+    //     _landmarks[_TRIANGLES[i]].x * scaleRate - screenRect.width / 2;
+    //   faces[i * 3 + 1] =
+    //     _landmarks[_TRIANGLES[i]].y * scaleRate - screenRect.height / 2;
+    //   faces[i * 3 + 2] = _landmarks[_TRIANGLES[i]].z;
+
+    //   normals[i * 3] = 0.0;
+    //   normals[i * 3 + 1] = 0.0;
+    //   normals[i * 3 + 2] = 1.0;
+    // }
+
+    // 配列に変換してindex作成
+    const _TRIANGLES = TRIANGLES_WRAP.map((item) => item.points).flat(2);
+    let indexes = new Uint16Array(_TRIANGLES);
 
     // uv
-    let uvs = new Float32Array(UV.length);
-    for (let i = 0; i < UV.length; i++) uvs[i] = UV[i];
+    const _UV = UV_WRAP.map((item) => item.uv).flat(2);
+    let uvs = new Float32Array(_UV.length);
+    for (let i = 0; i < _UV.length; i++) uvs[i] = _UV[i];
 
     // ジオメトリ
     let geo = new THREE.BufferGeometry();
@@ -262,7 +278,7 @@ const _faceScene = () => {
     geo.setAttribute("position", new THREE.BufferAttribute(faces, 3));
     geo.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
     geo.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
-    // geo.setIndex(new THREE.BufferAttribute(indexes, 1));
+    geo.setIndex(new THREE.BufferAttribute(indexes, 1));
 
     // マテリアル
     let n = true;
@@ -296,8 +312,10 @@ const _faceScene = () => {
 
     if (!n) console.log(UV, mat, basicMat, lineMat, phoneMat, indexes);
 
-    shapeMesh = new THREE.Mesh(geo, lineMat);
-    shapeMesh.material.wireframe = true;
+    shapeMesh = new THREE.Mesh(geo, mat);
+
+    //ワイヤーフレーム表示
+    // shapeMesh.material.wireframe = true;
     scene.add(shapeMesh);
   };
 
