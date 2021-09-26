@@ -1,9 +1,9 @@
 import * as THREE from "three";
-import { getGesture } from "./FingerStatus";
-import { ModelLoader } from "./ModelLoader";
-import { PlaneLoader } from "./PlaneLoader";
+import { getGesture } from "./finger/FingerStatus";
+import { ModelLoader } from "./loader/ModelLoader";
+import { PlaneLoader } from "./loader/PlaneLoader";
 import { theta } from "../../util/vector";
-import { getDistance } from "./FingerSwitch";
+import { getDistance } from "./finger/FingerSwitch";
 /**
  * threejsのベクトル演算
  * https://qiita.com/aa_debdeb/items/c58d5eda9a4052b5dd2f
@@ -35,11 +35,11 @@ const _handScene = () => {
     shiftleft,
     videoRef,
     overflowRef,
-    showFingerMesh,
-    handNumber
+    showMesh,
+    detectNumber
   }) => {
     return new Promise((resolved) => {
-      isFingerMesh = showFingerMesh;
+      isFingerMesh = showMesh;
       video = document.getElementById(videoRef);
       scene = new THREE.Scene({ alpha: true });
 
@@ -78,7 +78,7 @@ const _handScene = () => {
         renderer.render(scene, camera);
       }
       //メッシュを用意
-      for (let i = 0; i < handNumber; i++) {
+      for (let i = 0; i < detectNumber; i++) {
         setupMeshes();
       }
       nrender();
@@ -215,7 +215,7 @@ const _handScene = () => {
       const p0 = webcam2space(...landmarks[i]); //現在の座標
       const p1 = webcam2space(...landmarks[next]); //次のパーツの座標
 
-      //　p0をp1の方向に0.5(中間地点)の距離
+      // p0をp1の方向に0.5(中間地点)の距離
       // const mid = p0.clone().lerp(p1, 0.5);
 
       //モデル描画用

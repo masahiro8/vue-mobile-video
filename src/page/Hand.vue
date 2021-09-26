@@ -64,8 +64,8 @@ export default {
           shiftleft: video_info.shiftleft,
           videoRef: "srcVideo",
           overflowRef: "overlay",
-          showFingerMesh: false, //指モデルの表示フラグ
-          handNumber: 2, //現在は手は１つしか検出できない mediapopeの仕様
+          showMesh: false, //指モデルの表示フラグ
+          detectNumber: 2, //現在は手は１つしか検出できない mediapopeの仕様
         });
         console.log("init");
 

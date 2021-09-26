@@ -3,7 +3,7 @@ export const videoStream = async ({
   videoId,
   canvasId,
   detectScale,
-  readyCallback
+  readyCallback,
 }) => {
   const WINDOW_WIDTH = window.innerWidth;
   const WINDOW_HEIGHT = window.innerHeight;
@@ -19,7 +19,7 @@ export const videoStream = async ({
     width: null,
     height: null,
     rate: null,
-    rate_back: null
+    rate_back: null,
   };
 
   /**
@@ -30,14 +30,14 @@ export const videoStream = async ({
       let media = navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
-          facingMode: "user"
-        }
+          facingMode: "user",
+        },
       });
       media
         .then((stream) => {
           video.muted = true;
           video.playsinline = true;
-          video.onloadedmetadata = (e) => {
+          video.onloadedmetadata = () => {
             resolved(true);
           };
           video.srcObject = stream;
@@ -59,7 +59,7 @@ export const videoStream = async ({
 
     const size = {
       w: video.videoWidth * video_window_rate,
-      h: WINDOW_HEIGHT
+      h: WINDOW_HEIGHT,
     };
 
     const left = (size.w - WINDOW_WIDTH) / 2;
@@ -70,7 +70,7 @@ export const videoStream = async ({
       width: size.w + "px",
       height: size.h + "px",
       left: -left + "px",
-      top: -top + "px"
+      top: -top + "px",
     };
 
     video.width = size.w;
@@ -89,20 +89,22 @@ export const videoStream = async ({
       videoWidth: video.videoWidth,
       videoHeight: video.videoHeight,
       rate: video_window_rate,
-      rate_back: video_window_rate_back
+      rate_back: video_window_rate_back,
     };
   };
 
   /**
    * 描画canvasのサイズ
    */
-  const adjustCanvasSize = () => {
-    const frameRect = frame.getBoundingClientRect();
-    const rate = video_info.rate_back;
-    //動画を描画するcanvasは動画と同解像度
-    canvas.width = `${Math.floor(frameRect.width * rate * detectScale)}`;
-    canvas.height = `${Math.floor(frameRect.height * rate * detectScale)}`;
-  };
+  // const adjustCanvasSize = () => {
+  //   const frameRect = video.getBoundingClientRect();
+  //   // const rate = video_info.rate_back;
+  //   // //動画を描画するcanvasは動画と同解像度
+  //   canvas.width = frameRect.width;
+  //   canvas.height = frameRect.height;
+  //   // canvas.width = `${Math.floor(frameRect.width * rate * detectScale)}`;
+  //   // canvas.height = `${Math.floor(frameRect.height * rate * detectScale)}`;
+  // };
 
   /**
    * 動画を描画
@@ -122,7 +124,7 @@ export const videoStream = async ({
     const sw = Math.floor(frameRect.width * rate);
     const sh = Math.floor(frameRect.height * rate);
 
-    // console.log(sx, sy, sw, sh);
+    console.log(sx, sy, sw, sh);
 
     ctx.drawImage(
       video,
@@ -154,14 +156,14 @@ export const videoStream = async ({
 
   await initCamera();
   adjustVideoSize();
-  adjustCanvasSize();
+  // adjustCanvasSize();
   readyCallback(video_info);
-  //isStreamingVideo = true;
+  // isStreamingVideo = true;
   render();
 
   return {
     initCamera,
     stopVideoStream,
-    replayVideoStream
+    replayVideoStream,
   };
 };
