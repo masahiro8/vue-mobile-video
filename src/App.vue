@@ -1,38 +1,40 @@
 <template>
   <div id="app">
-    <Face :data="data" :shader="shader" :textures="textures" :style="style" />
+    <Face :data="products" :shader="shader" :textures="textures" />
+    <ProductUi />
   </div>
 </template>
 
 <script>
   import Face from "./page/Face";
-  import { VS_CODE, FS_CODE } from "@/components/threejs/face/shader/shader.js";
-
-  const DATA = [
-    { path: "./images/vrmonkey_512_512.jpg", text: "" },
-    {
-      path: "./images/LOGO_512.jpg",
-      text: "韓国コスメのバーチャルメイクサービス MAHOU MAKE",
-    },
-  ];
+  import ProductUi from "./ui/ProductUi/index.vue";
+  import { VS_CODE, FS_CODE } from "@/shader/face.js";
+  import { Store } from "@/store/Store";
 
   export default {
     name: "App",
     components: {
       Face,
+      ProductUi,
     },
     data: () => {
       return {
-        data: DATA,
         shader: {
           fs: null,
           vs: null,
         },
         textures: [],
-        style: {},
       };
     },
+    computed: {
+      products() {
+        return Store.getters["Products/getData"];
+      },
+    },
     mounted() {
+      Store.dispatch("Products/load", {});
+
+      // this.loadData();
       // 非同期で実行
       setTimeout(() => {
         this.shader = {

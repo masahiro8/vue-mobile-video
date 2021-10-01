@@ -29,7 +29,7 @@
     },
     props: {
       data: {
-        type: Array,
+        type: Object,
       },
       shader: {
         type: Object,
@@ -37,20 +37,17 @@
       textures: {
         type: Array,
       },
-      style: {
-        type: Object,
-      },
     },
     mounted() {
       this.$watch(
-        () => [this.shader, this.textures, this.video_info],
+        () => [this.shader, this.video_info, this.data],
         (values, oldValues) => {
           if (JSON.stringify(values) !== JSON.stringify(oldValues)) {
             const fsShader = values[0].fs;
             const vsShader = values[0].vs;
-            const textures = values[1];
-            const video_info = values[2];
-            if (fsShader && vsShader && video_info && textures.length > 0) {
+            const video_info = values[1];
+            const data = values[2];
+            if (fsShader && vsShader && video_info && data) {
               this.faceDraw();
             }
           }
