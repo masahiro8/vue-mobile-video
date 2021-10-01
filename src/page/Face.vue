@@ -24,68 +24,91 @@
   export default {
     data: () => {
       return {
-        switch: false,
-        Images: [], //画像を設定
-        ImageIndex: 0, //表示する画像のindex
+        video_info: null,
       };
     },
     props: {
       data: {
         type: Array,
       },
+      shader: {
+        type: Object,
+      },
+      textures: {
+        type: Array,
+      },
+      style: {
+        type: Object,
+      },
     },
     mounted() {
-      //ここからビデオの映像を取得
-      videoStream({
-        frameId: "frame",
-        videoId: "srcVideo",
-        canvasId: "video_shadow",
-        detectScale: 1,
-        //カメラ起動完了でコール
-        readyCallback: async (video_info) => {
-          console.log("video_info", { ...video_info });
-          //3Dシーンを初期化
-          await faceScene.init({
-            width: video_info.width,
-            height: video_info.height,
-            shiftleft: video_info.shiftleft,
-            overflowRef: "overlay",
-            videoRate: video_info.rate,
-            texturePath: "/images/vrmonkey_512_512.jpg",
-          });
-          const rect = document
-            .querySelector("#srcVideo")
-            .getBoundingClientRect();
-          console.log("init", rect);
-
-          //ここで検出情報を取得
-          faceLandmarks({
-            ref: "srcVideo",
-            fps: 1,
-            callback: (landmarks) => {
-              // console.log("landmarks", landmarks);
-              const _landmarks = landmarks.map((item) => {
-                return {
-                  x: `${item.x}`,
-                  y: `${item.y}`,
-                  z: `${item.z}`,
-                };
-              });
-              document.getElementById("tri").innerHTML = JSON.stringify(
-                _landmarks
-              );
-              faceScene.drawMesh({
-                srcVideoId: "srcVideo",
-                landmarks,
-              });
-              // faceScene.drawBox({
-              //   srcVideoId: "srcVideo",
-              //   landmarks,
-              // });
-            },
-          });
+      this.$watch(
+        () => [this.shader, this.textures, this.video_info],
+        (values, oldValues) => {
+          if (JSON.stringify(values) !== JSON.stringify(oldValues)) {
+            const fsShader = values[0].fs;
+            const vsShader = values[0].vs;
+            const textures = values[1];
+            const video_info = values[2];
+            if (fsShader && vsShader && video_info && textures.length > 0) {
+              this.faceDraw();
+            }
+          }
         },
-      });
+        {
+          immediate: true,
+          deep: true,
+        }
+      );
+      this.initVideo();
+    },
+    methods: {
+      initVideo() {
+        //ここからビデオの映像を取得
+        videoStream({
+          frameId: "frame",
+          videoId: "srcVideo",
+          canvasId: "video_shadow",
+          detectScale: 1,
+
+          //カメラ起動完了でコール
+          readyCallback: async (video_info) => {
+            this.video_info = video_info;
+          },
+        });
+      },
+
+      /**
+       * Three.js のシーンを作成
+       */
+      async faceDraw() {
+        const video_info = this.video_info;
+        //3Dシーンを初期化
+        await faceScene.init({
+          width: video_info.width,
+          height: video_info.height,
+          shiftleft: video_info.shiftleft,
+          overflowRef: "overlay",
+          videoRate: video_info.rate,
+          texturePath: this.textures[0],
+          vsShader: this.shader.vs,
+          fsShader: this.shader.fs,
+        });
+
+        //動画をここでaiに渡す
+        faceLandmarks({
+          ref: "srcVideo",
+          fps: 15,
+
+          //検出情報を取得
+          callback: (landmarks) => {
+            faceScene.drawMesh({
+              srcVideoId: "srcVideo",
+              landmarks,
+            });
+          },
+        });
+      },
     },
   };
 </script>

@@ -1,19 +1,12 @@
 <template>
   <div id="app">
-    <Face :data="data" />
-    <!-- <ThreeMesh /> -->
-    <textarea
-      id="tri"
-      cols="30"
-      rows="10"
-      style="position:absolute;z-index:99999"
-    ></textarea>
+    <Face :data="data" :shader="shader" :textures="textures" :style="style" />
   </div>
 </template>
 
 <script>
   import Face from "./page/Face";
-  // import ThreeMesh from "./page/3DMesh";
+  import { VS_CODE, FS_CODE } from "@/components/threejs/face/shader/shader.js";
 
   const DATA = [
     { path: "./images/vrmonkey_512_512.jpg", text: "" },
@@ -27,12 +20,27 @@
     name: "App",
     components: {
       Face,
-      // ThreeMesh,
     },
     data: () => {
       return {
         data: DATA,
+        shader: {
+          fs: null,
+          vs: null,
+        },
+        textures: [],
+        style: {},
       };
+    },
+    mounted() {
+      // 非同期で実行
+      setTimeout(() => {
+        this.shader = {
+          fs: FS_CODE,
+          vs: VS_CODE,
+        };
+        this.textures = ["/images/vrmonkey_512_512.jpg"];
+      }, 1000);
     },
   };
 </script>

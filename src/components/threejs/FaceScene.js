@@ -1,11 +1,5 @@
 import * as THREE from "three";
-import {
-  TRIANGLES,
-  TRIANGLES_WRAP,
-  UV,
-  UV_WRAP,
-} from "@/components/tf/face/landmarks.js";
-import { VS_CODE, FS_CODE } from "@/components/threejs/face/shader/shader.js";
+import { TRIANGLES_WRAP, UV_WRAP } from "@/components/tf/face/landmarks.js";
 import { deepCopy } from "@/util/util.js";
 /**
  * threejsのベクトル演算
@@ -19,13 +13,23 @@ const _faceScene = () => {
   let shapeMesh;
   let screenRect = { width: 0, height: 0 };
   let texture;
-
-  let boxes = null;
+  let shader = {
+    vs: null,
+    fs: null,
+  };
 
   /**
    * 描画のためのThree.jsのシーンを作成
    */
-  const init = ({ width, height, shiftleft, overflowRef, texturePath }) => {
+  const init = ({
+    width,
+    height,
+    shiftleft,
+    overflowRef,
+    texturePath,
+    vsShader,
+    fsShader,
+  }) => {
     return new Promise((resolved) => {
       screenRect = { width, height };
 
@@ -34,6 +38,10 @@ const _faceScene = () => {
       texture = loader.load(texturePath); // テクスチャ読み込み
       texture.minFilter = THREE.LinearFilter;
       texture.magFilter = THREE.LinearFilter;
+
+      //シェーダー
+      shader.vs = vsShader;
+      shader.fs = fsShader;
 
       // シーン
       scene = new THREE.Scene({ alpha: true });
@@ -125,97 +133,6 @@ const _faceScene = () => {
     return [..._landmarks, ...addArr];
   };
 
-  // const drawScreen = ({ srcVideoId, landmarks }) => {
-  //   // メッシュを削除
-  //   if (scene && shapeMesh) {
-  //     scene.remove(shapeMesh);
-  //     shapeMesh.geometry.dispose();
-  //     shapeMesh.material.dispose();
-  //   }
-
-  //   // 中間の頂点を追加
-  //   let _landmarks = addMiddlePoint(landmarks);
-
-  //   // スケールを取得
-  //   const video = document.getElementById(srcVideoId);
-  //   const scaleRate = screenRect.width / video.videoWidth;
-
-  //   let vec3Faces = [];
-  //   for (let i = 0; i < _landmarks.length; i++) {
-  //     vec3Faces[i] = new THREE.Vector3(
-  //       _landmarks[i].x * scaleRate + screenRect.width / 2,
-  //       _landmarks[i].y * scaleRate + screenRect.width / 2,
-  //       _landmarks[i].z
-  //     );
-  //   }
-
-  //   let geo = new THREE.BufferGeometry();
-
-  //   const mat = new THREE.ShaderMaterial({
-  //     uniforms: {
-  //       vec3Faces: { type: "v3v", value: vec3Faces },
-  //       screenUV: {
-  //         type: "v2",
-  //         value: new THREE.Vector2(
-  //           screenRect.width * scaleRate,
-  //           screenRect.height * scaleRate
-  //         ),
-  //       },
-  //     },
-  //     vertexShader: VS_CODE,
-  //     fragmentShader: FS_CODE,
-  //     wireframe: false,
-  //     side: THREE.DoubleSide,
-  //     transparent: true,
-  //   });
-
-  //   geo = new THREE.PlaneGeometry(screenRect.width, screenRect.height, 1, 1);
-  //   shapeMesh = new THREE.Mesh(geo, mat);
-
-  //   scene.add(shapeMesh);
-  // };
-
-  const drawBox = ({ srcVideoId, landmarks }) => {
-    if (boxes && boxes.length) {
-      for (let i = boxes.length; i > 0; i--) {
-        scene.remove(boxes[i]);
-      }
-    }
-    boxes = [];
-
-    // 中間の頂点を追加
-    let _landmarks = addMiddlePoint(landmarks);
-
-    // スケールを取得
-    const video = document.getElementById(srcVideoId);
-    const scaleRate = screenRect.width / video.videoWidth;
-
-    // 表示するインデックスを追加
-    const vispoint = [0, 1, 73, 74, 2];
-
-    for (let i = 0; i < TRIANGLES.length; i++) {
-      for (let n = 0; n < vispoint.length; n++) {
-        if (TRIANGLES[i] == vispoint[n]) {
-          const p = {
-            x: _landmarks[TRIANGLES[i]].x * scaleRate - screenRect.width / 2,
-            y: _landmarks[TRIANGLES[i]].y * scaleRate - screenRect.height / 2,
-          };
-          const geometry = new THREE.BoxGeometry(10, 10, 10);
-          const material = new THREE.MeshBasicMaterial();
-          material.color.setRGB(0.002 * i, 0, 0.002 * i);
-          // material.flatShading = true;
-          const box = new THREE.Mesh(geometry, material);
-          box.position.set(p.x, p.y, 0);
-          boxes.push(box);
-        }
-      }
-    }
-
-    for (let i = 0; i < boxes.length; i++) {
-      scene.add(boxes[i]);
-    }
-  };
-
   /**
    *
    * 描画
@@ -240,6 +157,7 @@ const _faceScene = () => {
     let normals = new Float32Array(_landmarks.length * 3); //頂点法線
 
     // シェーダーではsetIndexが必須なので、facesでは最小の頂点情報を作成する
+    // シェーダーを使用しない場合は、重複する頂点もまとめてfacesにぶっ込んでもOK
     for (let i = 0; i < _landmarks.length; i++) {
       faces[i * 3] = _landmarks[i].x * scaleRate - screenRect.width / 2;
       faces[i * 3 + 1] = _landmarks[i].y * scaleRate - screenRect.height / 2;
@@ -248,19 +166,6 @@ const _faceScene = () => {
       normals[i * 3 + 1] = 0.0;
       normals[i * 3 + 2] = 1.0;
     }
-
-    // シェーダーを使用しない場合は、重複する頂点もまとめてfacesにぶっ込んでもOK
-    // for (let i = 0; i < _TRIANGLES.length; i++) {
-    //   faces[i * 3] =
-    //     _landmarks[_TRIANGLES[i]].x * scaleRate - screenRect.width / 2;
-    //   faces[i * 3 + 1] =
-    //     _landmarks[_TRIANGLES[i]].y * scaleRate - screenRect.height / 2;
-    //   faces[i * 3 + 2] = _landmarks[_TRIANGLES[i]].z;
-
-    //   normals[i * 3] = 0.0;
-    //   normals[i * 3 + 1] = 0.0;
-    //   normals[i * 3 + 2] = 1.0;
-    // }
 
     // 配列に変換してindex作成
     const _TRIANGLES = TRIANGLES_WRAP.map((item) => item.points).flat(2);
@@ -281,7 +186,8 @@ const _faceScene = () => {
     geo.setIndex(new THREE.BufferAttribute(indexes, 1));
 
     // マテリアル
-    let n = true;
+
+    // シェーダーマテリアル
     const mat = new THREE.ShaderMaterial({
       uniforms: {
         uTex: {
@@ -289,28 +195,11 @@ const _faceScene = () => {
           value: texture,
         },
       },
-      vertexShader: VS_CODE,
-      fragmentShader: FS_CODE,
+      vertexShader: shader.vs,
+      fragmentShader: shader.fs,
       side: THREE.DoubleSide,
       transparent: true,
     });
-
-    const phoneMat = new THREE.MeshStandardMaterial({
-      map: texture,
-      side: THREE.DoubleSide,
-    });
-
-    const basicMat = new THREE.MeshBasicMaterial({
-      color: 0x00ff00,
-      side: THREE.DoubleSide,
-    });
-
-    const lineMat = new THREE.LineBasicMaterial({
-      color: 0x00ff00,
-      linewidth: 1,
-    });
-
-    if (!n) console.log(UV, mat, basicMat, lineMat, phoneMat, indexes);
 
     shapeMesh = new THREE.Mesh(geo, mat);
 
@@ -322,8 +211,6 @@ const _faceScene = () => {
   return {
     init,
     drawMesh,
-    drawBox,
-    // drawScreen,
   };
 };
 

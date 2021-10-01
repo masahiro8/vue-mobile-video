@@ -2,7 +2,6 @@ import "@tensorflow/tfjs-core";
 import "@tensorflow/tfjs-converter";
 import "@tensorflow/tfjs-backend-webgl";
 import * as faceLandmarksDetection from "@tensorflow-models/face-landmarks-detection";
-// import { MediaPipeFaceMesh } from "@tensorflow-models/face-landmarks-detection/dist/types";
 import { fpsWorker } from "../../util/fps";
 import { LANDMARK_POINTS } from "./face/landmarks.js";
 
@@ -26,7 +25,6 @@ export const faceLandmarks = async ({ ref, fps, callback }) => {
         predictIrises: PREDICT_IRISES,
       });
       if (predictions.length > 0) {
-        console.log("---", predictions[0]);
         const landmarks = predictions.map((x) => packFace(x, LANDMARK_POINTS));
         if ("scaledMesh" in landmarks[0]) {
           callback(landmarks[0].scaledMesh);
@@ -46,13 +44,5 @@ const packFace = (face, set) => {
       z: face.scaledMesh[j][2], // 3D depth
     };
   }
-  // 視線
-  // if (PREDICT_IRISES) {
-  //   const NUM_KEYPOINTS = 468;
-  //   const NUM_IRIS_KEYPOINTS = 5;
-  //   for (let i = 0; i < NUM_IRIS_KEYPOINTS * 2; i++) {
-  //     ret.irises[i] = fsm[NUM_KEYPOINTS + i];
-  //   }
-  // }
   return ret;
 };
