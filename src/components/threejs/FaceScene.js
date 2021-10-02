@@ -17,6 +17,16 @@ const _faceScene = () => {
     vs: null,
     fs: null,
   };
+  let materialParams = {
+    textures: [],
+    styles: {},
+    stylesRgb: {},
+  };
+  let uniformsRGB = {
+    r: 0.0,
+    g: 0.0,
+    b: 0.0,
+  };
 
   /**
    * 描画のためのThree.jsのシーンを作成
@@ -26,16 +36,26 @@ const _faceScene = () => {
     height,
     shiftleft,
     overflowRef,
-    texturePath,
+    textures,
+    stylesRgb,
+    styles,
     vsShader,
     fsShader,
   }) => {
     return new Promise((resolved) => {
       screenRect = { width, height };
+      materialParams = { textures, stylesRgb, styles };
+      uniformsRGB = stylesRgb
+        ? {
+            r: stylesRgb[0].r / 255,
+            g: stylesRgb[0].g / 255,
+            b: stylesRgb[0].b / 255,
+          }
+        : { r: 1.0, g: 1.0, b: 1.0 };
 
       // テクスチャ
       const loader = new THREE.TextureLoader(); // テクスチャローダーを作成
-      texture = loader.load(texturePath); // テクスチャ読み込み
+      texture = loader.load(materialParams.textures[0].file_path); // テクスチャ読み込み
       texture.minFilter = THREE.LinearFilter;
       texture.magFilter = THREE.LinearFilter;
 
@@ -185,8 +205,6 @@ const _faceScene = () => {
     geo.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
     geo.setIndex(new THREE.BufferAttribute(indexes, 1));
 
-    // マテリアル
-
     // シェーダーマテリアル
     const mat = new THREE.ShaderMaterial({
       uniforms: {
@@ -194,6 +212,9 @@ const _faceScene = () => {
           type: "t",
           value: texture,
         },
+        r: { value: uniformsRGB.r },
+        g: { value: uniformsRGB.g },
+        b: { value: uniformsRGB.b },
       },
       vertexShader: shader.vs,
       fragmentShader: shader.fs,
@@ -208,9 +229,24 @@ const _faceScene = () => {
     scene.add(shapeMesh);
   };
 
+  const updateMaterial = ({ textures, stylesRgb, styles }) => {
+    materialParams = { textures, stylesRgb, styles };
+    uniformsRGB = {
+      r: stylesRgb[0].r / 255,
+      g: stylesRgb[0].g / 255,
+      b: stylesRgb[0].b / 255,
+    };
+
+    const loader = new THREE.TextureLoader(); // テクスチャローダーを作成
+    texture = loader.load(textures[0].file_path); // テクスチャ読み込み
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+  };
+
   return {
-    init,
-    drawMesh,
+    init, // 初期化
+    drawMesh, // メッシュ描画
+    updateMaterial, // マテリアル変更
   };
 };
 

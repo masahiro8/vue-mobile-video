@@ -10,10 +10,13 @@ void main()	{
 const FS_CODE = `
 uniform sampler2D uTex;
 varying vec2 vUv;
+uniform float r;
+uniform float g;
+uniform float b;
+
 void main()	{
-  vec4 tColor = texture2D(uTex, vUv);
-  gl_FragColor = tColor;
-  // gl_FragColor = vec4(0.5,0.5,0.5,0.5);
+  vec4 color = texture2D( uTex, vUv ).rgba;
+  gl_FragColor = vec4(r,g,b,color.a);
 }
 `;
 export { VS_CODE, FS_CODE };

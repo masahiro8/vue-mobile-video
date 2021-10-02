@@ -49,18 +49,22 @@ export const Products = {
   },
 
   getters: {
+    // 全データ取得
     getData: (state) => {
       return state.data;
     },
+    // 選択したカテゴリ内の商品データ一覧
     getCategoryProducts: (state) => (key) => {
       if (!key) return [];
       return state.data[key]["products"].filter((item) => item);
     },
+    // カテゴリ一覧を配列に変換
     getCategoryArray: (state) => {
       return Object.keys(state.data).map((key) => {
         return { key, ...state.data[key] };
       });
     },
+    // 選択している商品情報
     getProduct: (state) => {
       if (!state.selectedProduct.categoryKey) return null;
       const products = state.data[state.selectedProduct.categoryKey][

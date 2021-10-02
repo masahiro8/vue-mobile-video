@@ -20,11 +20,16 @@
   import { videoStream } from "../components/video/videoStream.js";
   import { faceLandmarks } from "../components/tf/FaceLandmarks.js";
   import { faceScene } from "../components/threejs/FaceScene.js";
+  import { Store } from "@/store/Store";
 
   export default {
     data: () => {
       return {
         video_info: null,
+        product: {
+          // TODO 初期値は透明かな？
+          textures: ["/images/LOGO_512.jpg"],
+        },
       };
     },
     props: {
@@ -34,11 +39,11 @@
       shader: {
         type: Object,
       },
-      textures: {
-        type: Array,
-      },
     },
     mounted() {
+      /**
+       * 非同期で取得するデータが全て揃ったら描画開始
+       */
       this.$watch(
         () => [this.shader, this.video_info, this.data],
         (values, oldValues) => {
@@ -57,9 +62,34 @@
           deep: true,
         }
       );
+
+      /**
+       * 商品を選択
+       */
+      this.$watch(
+        () => Store.getters["Products/getProduct"],
+        (newPdt, oldPdt) => {
+          if (JSON.stringify(newPdt) !== JSON.stringify(oldPdt)) {
+            // TODO 実装用に仮でテクスチャを設定
+            const textures = [
+              {
+                file_path: "/images/_eyeshadow.png",
+              },
+            ];
+            this.product = { ...newPdt, textures };
+            this.updateMaterial();
+          }
+        },
+        { deep: true }
+      );
+
+      // ビデオ開始
       this.initVideo();
     },
     methods: {
+      /**
+       * ビデオの初期化
+       */
       initVideo() {
         //ここからビデオの映像を取得
         videoStream({
@@ -80,6 +110,7 @@
        */
       async faceDraw() {
         const video_info = this.video_info;
+
         //3Dシーンを初期化
         await faceScene.init({
           width: video_info.width,
@@ -87,9 +118,11 @@
           shiftleft: video_info.shiftleft,
           overflowRef: "overlay",
           videoRate: video_info.rate,
-          texturePath: this.textures[0],
           vsShader: this.shader.vs,
           fsShader: this.shader.fs,
+          textures: this.product.textures,
+          stylesRgb: this.product.stylesRgb,
+          styles: this.product.styles,
         });
 
         //動画をここでaiに渡す
@@ -105,6 +138,15 @@
             });
           },
         });
+      },
+
+      /**
+       * 選択した商品が変わったら
+       * マテリアルに必要なデータを更新
+       */
+      updateMaterial() {
+        const { textures, stylesRgb, styles } = this.product;
+        faceScene.updateMaterial({ textures, stylesRgb, styles });
       },
     },
   };

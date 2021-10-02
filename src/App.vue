@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <Face :data="products" :shader="shader" :textures="textures" />
+    <Face :data="products" :shader="shader" />
     <ProductUi />
   </div>
 </template>
@@ -23,25 +23,22 @@
           fs: null,
           vs: null,
         },
-        textures: [],
       };
     },
     computed: {
       products() {
-        return Store.getters["Products/getData"];
+        return Store.getters["Products/getData"]; // コスメデータ取得
       },
     },
     mounted() {
       Store.dispatch("Products/load", {});
 
-      // this.loadData();
       // 非同期で実行
       setTimeout(() => {
         this.shader = {
           fs: FS_CODE,
           vs: VS_CODE,
         };
-        this.textures = ["/images/vrmonkey_512_512.jpg"];
       }, 1000);
     },
   };
