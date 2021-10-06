@@ -33,11 +33,13 @@ const getMaterialParams = async ({ textures, stylesRgb, styles }) => {
     }
 
     //ブレンドモード
-    let blend = {};
-    styles.split(";").map((item) => {
-      const val = item.split(":");
-      blend[val[0]] = val[1];
-    });
+    let _styles = [];
+    for (let i = 0; i < styles.length; i++) {
+      styles[i].split(";").map((item) => {
+        const val = item.split(":");
+        _styles[i][val[0]] = val[1];
+      });
+    }
 
     // テクスチャ作成 -> [Three.TextureLoader]
     const loadTexture = (path) => {
@@ -58,7 +60,7 @@ const getMaterialParams = async ({ textures, stylesRgb, styles }) => {
       resolve({
         colors,
         textures: threeTextures,
-        blend,
+        styles: _styles,
       });
     });
   });
