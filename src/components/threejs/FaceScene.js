@@ -26,8 +26,9 @@ const getMaterialParams = async ({ textures, stylesRgb, styles }) => {
     const _stylesRgb = Object.values(stylesRgb); // arrayに変換
     for (let i = 0; i < _stylesRgb.length; i++) {
       const color = new THREE.Color(
-        `rgb(${(_stylesRgb[i].r / 255) * 100}%, ${(_stylesRgb[i].g / 255) *
-          100}%, ${(_stylesRgb[i].b / 255) * 100}%)`
+        `rgb(${Math.floor((_stylesRgb[i].r / 255) * 100)}%, ${Math.floor(
+          (_stylesRgb[i].g / 255) * 100
+        )}%, ${Math.floor((_stylesRgb[i].b / 255) * 100)}%)`
       );
       colors.push(color);
     }
@@ -273,14 +274,18 @@ const _faceScene = () => {
       DEFAULT_MAKE_MODE === MAKE_MODE.MULTI
         ? // メイク複数選択用のuniforms
           {
-            videoTexture: { type: "t", value: null },
+            // videoTexture: { type: "t", value: null },
+            defaultTexture: {
+              type: "t",
+              value: DEFAULT_MATERIAL.textures[0],
+            },
             cheekTexture: {
               type: "t",
               value: materials.cheeks
                 ? materials.cheeks.textures[0]
                 : DEFAULT_MATERIAL.textures[0],
             },
-            lipsTexture: {
+            lipTexture: {
               type: "t",
               value: materials.lips
                 ? materials.lips.textures[0]
@@ -292,7 +297,23 @@ const _faceScene = () => {
                 ? materials.eyeshadows.textures[0]
                 : DEFAULT_MATERIAL.textures[0],
             },
-            col1: {
+            defaultColor: {
+              type: "c",
+              value: DEFAULT_MATERIAL.colors[0],
+            },
+            lipColor: {
+              type: "c",
+              value: materials.lips
+                ? materials.lips.colors[0]
+                : DEFAULT_MATERIAL.colors[0],
+            },
+            cheekColor: {
+              type: "c",
+              value: materials.cheeks
+                ? materials.cheeks.colors[0]
+                : DEFAULT_MATERIAL.colors[0],
+            },
+            eyeshadowColor: {
               type: "c",
               value: materials.eyeshadows
                 ? materials.eyeshadows.colors[0]
@@ -316,23 +337,23 @@ const _faceScene = () => {
             b: { value: uniformsRGB.b },
           };
 
-    console.log("uniforms", uniforms); // TODO ここはコメントアウトする
+    // console.log("uniforms", uniforms); // TODO ここはコメントアウトする
 
     // シェーダーマテリアル
     const mat = new THREE.ShaderMaterial({
       //TODO 複数選択 は 作成したuniforms を使用する
-      // uniforms,
+      uniforms,
 
       //単一選択uniforms
-      uniforms: {
-        uTex: {
-          type: "t",
-          value: texture,
-        },
-        r: { value: uniformsRGB.r },
-        g: { value: uniformsRGB.g },
-        b: { value: uniformsRGB.b },
-      },
+      // uniforms: {
+      //   uTex: {
+      //     type: "t",
+      //     value: texture,
+      //   },
+      //   r: { value: uniformsRGB.r },
+      //   g: { value: uniformsRGB.g },
+      //   b: { value: uniformsRGB.b },
+      // },
       vertexShader: shader.vs,
       fragmentShader: shader.fs,
       side: THREE.DoubleSide,
