@@ -1,27 +1,93 @@
 import * as THREE from "three";
 import { TRIANGLES_WRAP, UV_WRAP } from "@/components/tf/face/landmarks.js";
 import { deepCopy } from "@/util/util.js";
+import { DEFAULT_MAKE_MODE } from "@/config";
+import { MAKE_MODE } from "@/contant";
+// import { ObjectSpaceNormalMap } from "three";
 /**
  * threejsのベクトル演算
  * https://qiita.com/aa_debdeb/items/c58d5eda9a4052b5dd2f
  */
+
+const TYPES = {
+  EYESHADOWS: "eyeshadows",
+  CHEEKS: "cheeks",
+  LIPS: "lips",
+};
+
+/**
+ * JSONのデータをシェーダー用にまとめて変換
+ */
+const getMaterialParams = async ({ textures, stylesRgb, styles }) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise((resolve) => {
+    // 色作成 -> [THREE.Color]
+    let colors = [];
+    const _stylesRgb = Object.values(stylesRgb); // arrayに変換
+    for (let i = 0; i < _stylesRgb.length; i++) {
+      const color = new THREE.Color(
+        `rgb(${(_stylesRgb[i].r / 255) * 100}%, ${(_stylesRgb[i].g / 255) *
+          100}%, ${(_stylesRgb[i].b / 255) * 100}%)`
+      );
+      colors.push(color);
+    }
+
+    //ブレンドモード
+    let blend = {};
+    styles.split(";").map((item) => {
+      const val = item.split(":");
+      blend[val[0]] = val[1];
+    });
+
+    // テクスチャ作成 -> [Three.TextureLoader]
+    const loadTexture = (path) => {
+      return new Promise((resolved) => {
+        new THREE.TextureLoader().load(path, resolved);
+      });
+    };
+    const textureLoadAll = async (textures) => {
+      return await Promise.all(
+        textures.map(async (texture) => {
+          const t = await loadTexture(texture.path);
+          return t;
+        })
+      );
+    };
+    const _textures = Object.values(textures); // arrayに変換
+    textureLoadAll(_textures).then((threeTextures) => {
+      resolve({
+        colors,
+        textures: threeTextures,
+        blend,
+      });
+    });
+  });
+};
 
 const _faceScene = () => {
   let scene;
   let camera;
   let renderer;
   let shapeMesh;
+  let shapeMeshes = {
+    lips: null,
+    eyeshadows: null,
+    cheeks: null,
+  };
+  let materials = {
+    lips: null,
+    eyeshadows: null,
+    cheeks: null,
+  };
+  let DEFAULT_MATERIAL = { styles: [], textures: [], colors: [] };
+
   let screenRect = { width: 0, height: 0 };
   let texture;
   let shader = {
     vs: null,
     fs: null,
   };
-  let materialParams = {
-    textures: [],
-    styles: {},
-    stylesRgb: {},
-  };
+
   let uniformsRGB = {
     r: 0.0,
     g: 0.0,
@@ -36,28 +102,22 @@ const _faceScene = () => {
     height,
     shiftleft,
     overflowRef,
-    textures,
-    stylesRgb,
-    styles,
     vsShader,
     fsShader,
   }) => {
     return new Promise((resolved) => {
       screenRect = { width, height };
-      materialParams = { textures, stylesRgb, styles };
-      uniformsRGB = stylesRgb
-        ? {
-            r: stylesRgb[0].r / 255,
-            g: stylesRgb[0].g / 255,
-            b: stylesRgb[0].b / 255,
-          }
-        : { r: 1.0, g: 1.0, b: 1.0 };
 
       // テクスチャ
       const loader = new THREE.TextureLoader(); // テクスチャローダーを作成
-      texture = loader.load(materialParams.textures[0].file_path); // テクスチャ読み込み
+      texture = loader.load("/images/clear"); // テクスチャ読み込み
       texture.minFilter = THREE.LinearFilter;
       texture.magFilter = THREE.LinearFilter;
+
+      //初期値
+      DEFAULT_MATERIAL.textures = [texture];
+      DEFAULT_MATERIAL.styles = [{ opacity: 0.0 }];
+      DEFAULT_MATERIAL.colors = [new THREE.Color("rgb(0%, 0%, 100%)")];
 
       //シェーダー
       shader.vs = vsShader;
@@ -205,8 +265,63 @@ const _faceScene = () => {
     geo.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
     geo.setIndex(new THREE.BufferAttribute(indexes, 1));
 
+    // メイクモード
+    // TODO 複数選択はこれを使用する
+    const uniforms =
+      DEFAULT_MAKE_MODE === MAKE_MODE.MULTI
+        ? // メイク複数選択用のuniforms
+          {
+            videoTexture: { type: "t", value: null },
+            cheekTexture: {
+              type: "t",
+              value: materials.cheeks
+                ? materials.cheeks.textures[0]
+                : DEFAULT_MATERIAL.textures[0],
+            },
+            lipsTexture: {
+              type: "t",
+              value: materials.lips
+                ? materials.lips.textures[0]
+                : DEFAULT_MATERIAL.textures[0],
+            },
+            eyeshadowTexture1: {
+              type: "t",
+              value: materials.eyeshadows
+                ? materials.eyeshadows.textures[0]
+                : DEFAULT_MATERIAL.textures[0],
+            },
+            col1: {
+              type: "c",
+              value: materials.eyeshadows
+                ? materials.eyeshadows.colors[0]
+                : DEFAULT_MATERIAL.colors[0],
+            },
+            opacity1: {
+              type: "f",
+              value: materials.eyeshadow
+                ? materials.eyeshadow.styles[0].opacity
+                : DEFAULT_MATERIAL.styles[0].opacity,
+            },
+          }
+        : {
+            //単一選択のuniforms
+            uTex: {
+              type: "t",
+              value: texture,
+            },
+            r: { value: uniformsRGB.r },
+            g: { value: uniformsRGB.g },
+            b: { value: uniformsRGB.b },
+          };
+
+    console.log("uniforms", uniforms); // TODO ここはコメントアウトする
+
     // シェーダーマテリアル
     const mat = new THREE.ShaderMaterial({
+      //TODO 複数選択 は 作成したuniforms を使用する
+      // uniforms,
+
+      //単一選択uniforms
       uniforms: {
         uTex: {
           type: "t",
@@ -224,13 +339,21 @@ const _faceScene = () => {
 
     shapeMesh = new THREE.Mesh(geo, mat);
 
+    // パーツごとのメッシュ作成
+    Object.keys(TYPES).forEach((key) => {
+      shapeMeshes[key] = new THREE.Mesh(geo, mat);
+    });
+
     //ワイヤーフレーム表示
     // shapeMesh.material.wireframe = true;
     scene.add(shapeMesh);
   };
 
+  /**
+   * 単体で変更する場合
+   */
   const updateMaterial = ({ textures, stylesRgb, styles }) => {
-    materialParams = { textures, stylesRgb, styles };
+    console.log("update material", textures, stylesRgb, styles);
     uniformsRGB = {
       r: stylesRgb[0].r / 255,
       g: stylesRgb[0].g / 255,
@@ -238,15 +361,31 @@ const _faceScene = () => {
     };
 
     const loader = new THREE.TextureLoader(); // テクスチャローダーを作成
-    texture = loader.load(textures[0].file_path); // テクスチャ読み込み
+    texture = loader.load(textures[0].path); // テクスチャ読み込み
     texture.minFilter = THREE.LinearFilter;
     texture.magFilter = THREE.LinearFilter;
+    console.log("texture", texture);
+  };
+
+  /**
+   * lip, eyeshadow, cheek 全部を併用する場合
+   */
+  const updateMaterials = async ({ lips, eyeshadows, cheeks }) => {
+    console.log("update materials", lips, eyeshadows, cheeks);
+
+    materials = {
+      lips: lips ? await getMaterialParams(lips) : null,
+      eyeshadows: eyeshadows ? await getMaterialParams(eyeshadows) : null,
+      cheeks: cheeks ? await getMaterialParams(cheeks) : null,
+    };
+    console.log(materials);
   };
 
   return {
     init, // 初期化
     drawMesh, // メッシュ描画
     updateMaterial, // マテリアル変更
+    updateMaterials,
   };
 };
 

@@ -1,6 +1,7 @@
 import Vue from "vue";
 import Vuex from "vuex";
 import { api } from "@/api/api";
+import { deepCopy } from "@/util/util";
 
 Vue.use(Vuex);
 
@@ -16,6 +17,12 @@ export const Products = {
       categoryKey: null,
       productId: null,
     },
+    // 複数選択
+    selectedProducts: {
+      lips: null,
+      eyeshadows: null,
+      cheeks: null,
+    },
   },
 
   mutations: {
@@ -27,6 +34,7 @@ export const Products = {
     },
     SET_PRODUCT(state, payload) {
       state.selectedProduct = payload;
+      state.selectedProducts[payload.categoryKey] = payload.productId;
     },
   },
 
@@ -74,6 +82,25 @@ export const Products = {
         (item) => item.id === state.selectedProduct.productId
       );
       return p;
+    },
+
+    // 選択している商品情報
+    getProducts: (state) => {
+      if (Object.keys(state.data).length === 0) return null;
+
+      const selectedProducts = deepCopy(state.selectedProducts);
+
+      Object.keys(selectedProducts).forEach((key) => {
+        if (key in state.data && selectedProducts[key]) {
+          const _products = state.data[key].products.filter((item) => item);
+          selectedProducts[key] = _products.find((item) => {
+            return state.selectedProducts[key] === item.id;
+          });
+        } else {
+          selectedProducts[key] = null;
+        }
+      });
+      return selectedProducts;
     },
   },
 };

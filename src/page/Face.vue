@@ -21,14 +21,17 @@
   import { faceLandmarks } from "../components/tf/FaceLandmarks.js";
   import { faceScene } from "../components/threejs/FaceScene.js";
   import { Store } from "@/store/Store";
+  import { deepCopy } from "@/util/util";
 
   export default {
     data: () => {
       return {
         video_info: null,
-        product: {
-          // TODO 初期値は透明かな？
-          textures: ["/images/LOGO_512.jpg"],
+        product: null,
+        products: {
+          lips: null,
+          eyeshadows: null,
+          cheeks: null,
         },
       };
     },
@@ -64,23 +67,30 @@
       );
 
       /**
-       * 商品を選択
+       * 商品を選択 => 1つしか選択できないので廃止予定
        */
       this.$watch(
         () => Store.getters["Products/getProduct"],
         (newPdt, oldPdt) => {
           if (JSON.stringify(newPdt) !== JSON.stringify(oldPdt)) {
-            // TODO 実装用に仮でテクスチャを設定
-            const textures = [
-              {
-                file_path: "/images/_eyeshadow.png",
-              },
-            ];
-            this.product = { ...newPdt, textures };
+            this.product = { ...newPdt };
             this.updateMaterial();
           }
         },
         { deep: true }
+      );
+
+      /**
+       * 選択した商品情報一式取得
+       */
+      this.$watch(
+        () => Store.getters["Products/getProducts"],
+        (newPdts, oldPsts) => {
+          if (JSON.stringify(newPdts) !== JSON.stringify(oldPsts)) {
+            this.products = deepCopy(newPdts);
+            this.updateMaterial();
+          }
+        }
       );
 
       // ビデオ開始
@@ -120,9 +130,6 @@
           videoRate: video_info.rate,
           vsShader: this.shader.vs,
           fsShader: this.shader.fs,
-          textures: this.product.textures,
-          stylesRgb: this.product.stylesRgb,
-          styles: this.product.styles,
         });
 
         //動画をここでaiに渡す
@@ -145,8 +152,11 @@
        * マテリアルに必要なデータを更新
        */
       updateMaterial() {
+        if (!this.product) return;
         const { textures, stylesRgb, styles } = this.product;
+        console.log("■■■ update", this.product, textures, stylesRgb, styles);
         faceScene.updateMaterial({ textures, stylesRgb, styles });
+        faceScene.updateMaterials(this.products);
       },
     },
   };
