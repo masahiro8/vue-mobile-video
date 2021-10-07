@@ -35,12 +35,15 @@ const getMaterialParams = async ({ textures, stylesRgb, styles }) => {
 
     //ブレンドモード
     let _styles = [];
-    for (let i = 0; i < styles.length; i++) {
-      styles[i].split(";").map((item) => {
+    const stylesArr = Object.values(styles); // arrayに変換
+    for (let i = 0; i < stylesArr.length; i++) {
+      _styles[i] = {};
+      stylesArr[i].split(";").map((item) => {
         const val = item.split(":");
         _styles[i][val[0]] = val[1];
       });
     }
+    console.log("styles", styles, _styles);
 
     // テクスチャ作成 -> [Three.TextureLoader]
     const loadTexture = (path) => {
@@ -319,10 +322,22 @@ const _faceScene = () => {
                 ? materials.eyeshadows.colors[0]
                 : DEFAULT_MATERIAL.colors[0],
             },
-            opacity1: {
+            lipOpacity: {
               type: "f",
-              value: materials.eyeshadow
-                ? materials.eyeshadow.styles[0].opacity
+              value: materials.lips
+                ? +materials.lips.styles[0].opacity
+                : DEFAULT_MATERIAL.styles[0].opacity,
+            },
+            cheekOpacity: {
+              type: "f",
+              value: materials.cheeks
+                ? +materials.cheeks.styles[0].opacity
+                : DEFAULT_MATERIAL.styles[0].opacity,
+            },
+            eyeshadowOpacity: {
+              type: "f",
+              value: materials.eyeshadows
+                ? +materials.eyeshadows.styles[0].opacity
                 : DEFAULT_MATERIAL.styles[0].opacity,
             },
           }

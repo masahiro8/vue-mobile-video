@@ -17,7 +17,9 @@ uniform vec3 defaultColor;
 uniform vec3 lipColor;
 uniform vec3 cheekColor;
 uniform vec3 eyeshadowColor;
-uniform float opacity1;
+uniform float lipOpacity;
+uniform float cheekOpacity;
+uniform float eyeshadowOpacity;
 
 void main()	{
 
@@ -26,9 +28,9 @@ void main()	{
   vec4 cheekTex = texture2D( cheekTexture, vUv ).rgba;
   vec4 eyeshadowTex = texture2D( eyeshadowTexture1, vUv ).rgba;
 
-  vec4 eyeshadow = vec4(eyeshadowColor,eyeshadowTex.a);
-  vec4 cheek = vec4(cheekColor,cheekTex.a);
-  vec4 lip = vec4(lipColor,lipTex.a);
+  vec4 eyeshadow = vec4(eyeshadowColor,eyeshadowTex.a) * eyeshadowOpacity;
+  vec4 cheek = vec4(cheekColor,cheekTex.a) * cheekOpacity;
+  vec4 lip = vec4(lipColor,lipTex.a) * lipOpacity;
 
   vec4 isEyeshadow = vec4(1.0) - step(vec4(eyeshadowTex.a),vec4(0));
   vec4 isCheek = vec4(1.0) - step(vec4(cheekTex.a),vec4(0));
