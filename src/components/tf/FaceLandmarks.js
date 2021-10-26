@@ -25,7 +25,10 @@ export const faceLandmarks = async ({ ref, fps, callback }) => {
         predictIrises: PREDICT_IRISES,
       });
       if (predictions.length > 0) {
-        const landmarks = predictions.map((x) => packFace(x, LANDMARK_POINTS));
+        let landmarks = [];
+        for (let i = 0; i < predictions.length; i++) {
+          landmarks.push(packFace(predictions[i], LANDMARK_POINTS));
+        }
         if ("scaledMesh" in landmarks[0]) {
           callback(landmarks[0].scaledMesh);
         }

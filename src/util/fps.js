@@ -18,9 +18,9 @@ const _fps = () => {
     predict();
   };
   const publsh = () => {
-    callbacks.forEach((callback) => {
-      callback();
-    });
+    for (let i = 0; i < callbacks.length; i++) {
+      callbacks[i]();
+    }
   };
   const predict = () => {
     requestAnimationFrame(predict);
@@ -31,7 +31,7 @@ const _fps = () => {
     }
   };
   return {
-    setCallback
+    setCallback,
   };
 };
 

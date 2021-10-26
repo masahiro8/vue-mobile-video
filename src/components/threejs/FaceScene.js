@@ -3,6 +3,7 @@ import { TRIANGLES_WRAP, UV_WRAP } from "@/components/tf/face/landmarks.js";
 import { deepCopy } from "@/util/util.js";
 import { DEFAULT_MAKE_MODE } from "@/config";
 import { MAKE_MODE } from "@/contant";
+
 // import { ObjectSpaceNormalMap } from "three";
 /**
  * threejsのベクトル演算
@@ -13,6 +14,33 @@ const TYPES = {
   EYESHADOWS: "eyeshadows",
   CHEEKS: "cheeks",
   LIPS: "lips",
+};
+
+//最大数の配列を作る
+let history = [];
+const historyLimit = 3;
+const landmarksFilter = (landmarks) => {
+  history.unshift(landmarks);
+  history.splice(historyLimit);
+  let _landmarks = [];
+  if (history.length !== historyLimit) return landmarks;
+  for (let n = 0; n < history[0].length; n++) {
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    for (let i = 0; i < historyLimit; i++) {
+      const vec = history[i][n];
+      x = x + vec.x;
+      y = y + vec.y;
+      z = z + vec.z;
+    }
+    _landmarks.push({
+      x: x / historyLimit,
+      y: y / historyLimit,
+      z: z / historyLimit,
+    });
+  }
+  return _landmarks;
 };
 
 /**
@@ -38,10 +66,10 @@ const getMaterialParams = async ({ textures, stylesRgb, styles }) => {
     const stylesArr = Object.values(styles); // arrayに変換
     for (let i = 0; i < stylesArr.length; i++) {
       _styles[i] = {};
-      stylesArr[i].split(";").map((item) => {
-        const val = item.split(":");
+      for (let n = 0; n < stylesArr[i].split(";").length; n++) {
+        const val = stylesArr[i].split(";")[n].split(":");
         _styles[i][val[0]] = val[1];
-      });
+      }
     }
     console.log("styles", styles, _styles);
 
@@ -234,6 +262,9 @@ const _faceScene = () => {
     // 中間の頂点を追加
     let _landmarks = addMiddlePoint(landmarks);
 
+    // 平均化
+    _landmarks = landmarksFilter(_landmarks);
+
     // スケールを取得
     const video = document.getElementById(srcVideoId);
     const scaleRate = screenRect.width / video.videoWidth;
@@ -254,11 +285,18 @@ const _faceScene = () => {
     }
 
     // 配列に変換してindex作成
-    const _TRIANGLES = TRIANGLES_WRAP.map((item) => item.points).flat(2);
-    let indexes = new Uint16Array(_TRIANGLES);
+    let _TRIANGLES = [];
+    for (let i = 0; i < TRIANGLES_WRAP.length; i++) {
+      _TRIANGLES[i] = TRIANGLES_WRAP[i].points;
+    }
+    let indexes = new Uint16Array(_TRIANGLES.flat(2));
 
     // uv
-    const _UV = UV_WRAP.map((item) => item.uv).flat(2);
+    let _UV = [];
+    for (let i = 0; i < UV_WRAP.length; i++) {
+      _UV.push(UV_WRAP[i].uv);
+    }
+    _UV = _UV.flat(2);
     let uvs = new Float32Array(_UV.length);
     for (let i = 0; i < _UV.length; i++) uvs[i] = _UV[i];
 
@@ -378,9 +416,9 @@ const _faceScene = () => {
     shapeMesh = new THREE.Mesh(geo, mat);
 
     // パーツごとのメッシュ作成
-    Object.keys(TYPES).forEach((key) => {
-      shapeMeshes[key] = new THREE.Mesh(geo, mat);
-    });
+    for (let i = 0; i < Object.keys(TYPES).length; i++) {
+      shapeMeshes[Object.keys(TYPES)[i]] = new THREE.Mesh(geo, mat);
+    }
 
     //ワイヤーフレーム表示
     // shapeMesh.material.wireframe = true;
